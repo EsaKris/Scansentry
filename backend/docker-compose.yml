@@ -1,0 +1,23 @@
+# Local development. To use Supabase instead of the local Postgres container,
+# set DATABASE_URL in .env and remove the `db` service / depends_on.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: scansentry
+      POSTGRES_USER: scansentry
+      POSTGRES_PASSWORD: scansentry
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+  backend:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://scansentry:scansentry@db:5432/scansentry
+      DJANGO_SETTINGS_MODULE: config.settings.local
+    volumes: [".:/app"]
+    ports: ["8000:8000"]
+    depends_on: [db]
+volumes:
+  pgdata:

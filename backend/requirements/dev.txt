@@ -1,0 +1,4 @@
+-r base.txt
+pytest>=8.3
+pytest-django>=4.10
+opencv-python-headless>=4.10   # used by tests to decode generated QR images
