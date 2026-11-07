@@ -23,7 +23,20 @@
 - Contrast and quiet-zone rules enforced; generated images are decoded back in tests
 - Destination history is append-only; status/destination/logo changes are audited
 
+## Added in Milestone 3
+- Scanned content is treated as untrusted: analysed and neutralised (control characters stripped),
+  never executed, never fetched. A test fails if analysis opens a socket
+- `javascript:`, `data:`, `file:`, `vbscript:`, `intent:` and other dangerous schemes are always blocked;
+  unknown custom schemes are unsupported; embedded-credential and percent-encoded-host links are blocked
+- Every result requires explicit user confirmation before navigation; paused/disabled/expired
+  ScanSentry codes never reveal a destination; unregistered look-alike ScanSentry links are blocked
+- Image uploads: validated by content, size- and pixel-limited (decompression-bomb safe), decoded in memory only
+- Abuse reports: rate-limited, deduplicated, reporter IP stored only as a keyed hash, evidence images
+  re-encoded; reports never auto-block anything
+- Rate limits trust `X-Forwarded-For` only when `NUM_PROXIES` is configured
+
 ## Known gaps (tracked for later milestones)
+- Image decoding uses OpenCV, which misses a few percent of hard photos; the client camera decoder is the primary path
 - Login throttling is per-IP; add per-account lockout/backoff
 - Throttle counters need Redis (not per-process memory) when running multiple workers
 - No device/session management yet

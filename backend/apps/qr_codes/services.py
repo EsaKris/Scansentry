@@ -1,17 +1,14 @@
-import io
-import uuid
-
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
-from PIL import Image, UnidentifiedImageError
 from rest_framework.exceptions import ValidationError
 
 from apps.audit.services import record_audit
 from apps.core.entitlements import FeatureLimitReached, get_limit, require_feature
+from apps.core.images import sanitize_image_upload
 
 from .models import QRCode, QRDestinationHistory, generate_public_token
 from .payloads import REGISTRY
@@ -147,23 +144,8 @@ def staff_restore_qr(qr: QRCode, *, user):
 
 def process_logo_upload(upload) -> ContentFile:
     """Validate by actual content, strip metadata by re-encoding, return a PNG."""
-    if upload.size > settings.QR_MAX_LOGO_BYTES:
-        raise ValidationError({"logo": "Logo file is too large."})
-    try:
-        probe = Image.open(upload)
-        probe.verify()
-        upload.seek(0)
-        img = Image.open(upload)
-        if img.format not in {"PNG", "JPEG", "WEBP"}:
-            raise ValidationError({"logo": "Logo must be a PNG, JPEG or WebP image."})
-        if img.width * img.height > MAX_LOGO_PIXELS:
-            raise ValidationError({"logo": "Logo dimensions are too large."})
-        img = img.convert("RGBA")
-    except (UnidentifiedImageError, OSError, SyntaxError):
-        raise ValidationError({"logo": "Upload a valid image file."})
-    out = io.BytesIO()
-    img.save(out, format="PNG")  # re-encode: drops EXIF/other metadata
-    return ContentFile(out.getvalue(), name=f"{uuid.uuid4().hex}.png")
+    return sanitize_image_upload(upload, field="logo", max_bytes=settings.QR_MAX_LOGO_BYTES,
+                                 max_pixels=MAX_LOGO_PIXELS)
 
 
 @transaction.atomic

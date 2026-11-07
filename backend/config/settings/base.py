@@ -32,6 +32,8 @@ INSTALLED_APPS = [
     "apps.organizations",
     "apps.audit",
     "apps.qr_codes",
+    "apps.scanner",
+    "apps.abuse_reports",
 ]
 
 MIDDLEWARE = [
@@ -113,6 +115,9 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "apps.core.exceptions.api_exception_handler",
+    # Number of trusted reverse proxies in front of the API. 0 = use the socket address only
+    # (X-Forwarded-For is ignored, so clients cannot spoof it to dodge rate limits).
+    "NUM_PROXIES": env_int("NUM_PROXIES", 0),
     "DEFAULT_THROTTLE_CLASSES": (
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
@@ -125,6 +130,9 @@ REST_FRAMEWORK = {
         "auth_password_reset": "5/min",
         "auth_verify": "10/min",
         "qr_resolve": "120/min",
+        "scanner_decode": "30/min",
+        "scanner_analyze": "60/min",
+        "abuse_report": "5/hour",
     },
 }
 
@@ -168,3 +176,10 @@ QR_MIN_CONTRAST_RATIO = float(env("QR_MIN_CONTRAST_RATIO", "4.0"))
 QR_MAX_LOGO_RATIO = float(env("QR_MAX_LOGO_RATIO", "0.2"))
 QR_MAX_LOGO_BYTES = env_int("QR_MAX_LOGO_BYTES", 1_000_000)
 QR_MAX_PAYLOAD_CHARS = env_int("QR_MAX_PAYLOAD_CHARS", 2000)
+
+# --- Scanner ----------------------------------------------------------------------
+SCANNER_MAX_IMAGE_BYTES = env_int("SCANNER_MAX_IMAGE_BYTES", 5_000_000)
+SCANNER_MAX_IMAGE_PIXELS = env_int("SCANNER_MAX_IMAGE_PIXELS", 20_000_000)
+SCANNER_MAX_CONTENT_CHARS = env_int("SCANNER_MAX_CONTENT_CHARS", 4096)
+ABUSE_EVIDENCE_MAX_BYTES = env_int("ABUSE_EVIDENCE_MAX_BYTES", 2_000_000)
+ABUSE_DEDUPE_HOURS = env_int("ABUSE_DEDUPE_HOURS", 24)

@@ -849,16 +849,84 @@ paths:
                 type: string
                 format: binary
           description: ''
+  /api/v1/scanner/analyze/:
+    post:
+      operationId: scanner_analyze_create
+      description: 'Base for anonymous scanner endpoints: no auth, no cookies, never
+        cached.'
+      tags:
+      - scanner
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyzeRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/scanner/decode/:
+    post:
+      operationId: scanner_decode_create
+      description: 'Base for anonymous scanner endpoints: no auth, no cookies, never
+        cached.'
+      tags:
+      - scanner
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DecodeRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/scanner/report/:
+    post:
+      operationId: scanner_report_create
+      description: 'Public: anyone can report. Reports never change a code''s or domain''s
+        status by themselves.'
+      tags:
+      - scanner
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AbuseReportCreate'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AbuseReportCreate'
+        required: true
+      security:
+      - jwtAuthOptional: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/v1/scanner/verify/{token}/:
     get:
       operationId: scanner_verify_retrieve
-      description: |-
-        Public resolver for dynamic QR tokens (Milestone 2 baseline).
-
-        Never redirects. It reports state and, only while the code is active and unexpired,
-        the destination - and always requires explicit user confirmation before navigation.
-        Security assessment (domain intelligence, threat intel) arrives in Milestone 4, so the
-        security block honestly says no assessment has run.
+      description: Public resolver for dynamic QR tokens. Never redirects; always
+        needs user confirmation.
       parameters:
       - in: path
         name: token
@@ -886,6 +954,38 @@ paths:
           description: ''
 components:
   schemas:
+    AbuseReportCreate:
+      type: object
+      properties:
+        qr_token:
+          oneOf:
+          - type: string
+            pattern: ^[A-Za-z0-9_-]{16,64}$
+          - type: string
+            maxLength: 0
+        url:
+          type: string
+          maxLength: 2048
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        description:
+          type: string
+          maxLength: 2000
+          minLength: 10
+        evidence:
+          type: string
+          format: uri
+          nullable: true
+      required:
+      - category
+      - description
+    AnalyzeRequest:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+      - content
     Campaign:
       type: object
       properties:
@@ -915,6 +1015,22 @@ components:
       - name
       - qr_count
       - updated_at
+    CategoryEnum:
+      enum:
+      - suspicious_qr
+      - fraudulent_payment
+      - impersonation
+      - unexpected_destination
+      - malicious_sticker
+      - other
+      type: string
+      description: |-
+        * `suspicious_qr` - Suspicious QR code
+        * `fraudulent_payment` - Fraudulent payment page
+        * `impersonation` - Impersonation
+        * `unexpected_destination` - Unexpected destination change
+        * `malicious_sticker` - Malicious QR sticker
+        * `other` - Other abuse
     CodeModeEnum:
       enum:
       - static
@@ -923,6 +1039,14 @@ components:
       description: |-
         * `static` - Static
         * `dynamic` - Dynamic
+    DecodeRequest:
+      type: object
+      properties:
+        image:
+          type: string
+          format: uri
+      required:
+      - image
     ErrorCorrectionEnum:
       enum:
       - L
@@ -1466,6 +1590,10 @@ components:
       - token
   securitySchemes:
     jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    jwtAuthOptional:
       type: http
       scheme: bearer
       bearerFormat: JWT

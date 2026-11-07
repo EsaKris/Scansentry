@@ -11,7 +11,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "anon": "10000/min", "user": "10000/min", "auth_login": "10000/min",
         "auth_register": "10000/min", "auth_password_reset": "10000/min",
-        "auth_verify": "10000/min", "qr_resolve": "10000/min",
+        "auth_verify": "10000/min", "qr_resolve": "10000/min", "scanner_decode": "10000/min", "scanner_analyze": "10000/min", "abuse_report": "10000/hour",
     },
 }
 

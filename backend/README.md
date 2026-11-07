@@ -1,4 +1,4 @@
-# ScanSentry — Backend (Milestones 1–2: Foundation + QR engine)
+# ScanSentry — Backend (Milestones 1–3: Foundation + QR engine + Scanner)
 
 Django 5.2 + Django REST Framework API shared by the web and Android clients.
 
@@ -13,7 +13,9 @@ Django 5.2 + Django REST Framework API shared by the web and Android clients.
 - **QR engine (Milestone 2):** 10 QR types, static + dynamic codes, secure random tokens,
   destination editing with append-only history, pause / activate / disable / expiry,
   campaigns, logo upload, PNG / SVG / PDF export, live preview, scannability checks
-- 81 automated tests (generated codes are decoded back in tests to prove they scan)
+- **Scanner (Milestone 3):** server-side image decoding, content analysis for every QR payload type,
+  dangerous-scheme blocking, ScanSentry link resolution, public abuse reporting with moderator review
+- 146 automated tests (generated codes are decoded back in tests to prove they scan)
 
 ## Quick start (local, SQLite)
 ```bash
@@ -71,7 +73,6 @@ Docs: http://localhost:8000/api/v1/docs/ · Admin: http://localhost:8000/admin/
 | GET | /api/v1/qr/{id}/image/{png\|svg\|pdf}/ | add `?download=1` for an attachment |
 | POST | /api/v1/qr/preview/ | PNG preview without saving |
 | GET/POST/... | /api/v1/campaigns/ | Owner-scoped folders/campaigns |
-| GET | /api/v1/scanner/verify/{token}/ | **Public.** Resolves a dynamic token; never redirects |
 
 `data` per type: `url{url}` · `whatsapp{phone,message}` · `phone{phone}` · `email{address,subject,body}`
 · `wifi{ssid,password,security,hidden}` · `vcard{first_name,last_name,organization,title,phone,email,url}`
@@ -92,6 +93,36 @@ Set `REDIRECT_BASE_URL` to the public domain that will serve `/r/<token>` (the w
 - **Staff-disabled codes** cannot be re-enabled or edited by the owner; use the admin actions.
 - Logo is not included in `preview/` or SVG export (PNG/PDF only).
 
+## Scanner endpoints (Milestone 3) — all public, no account needed
+| Method | Path | Notes |
+|---|---|---|
+| POST | /api/v1/scanner/decode/ | multipart `image` (PNG/JPEG/WebP, ≤5 MB). Returns each decoded code **with its analysis**. Nothing is stored |
+| POST | /api/v1/scanner/analyze/ | JSON `{"content": "..."}` — use this when the web/mobile client decodes the camera frame itself |
+| GET | /api/v1/scanner/verify/{token}/ | Verification data for a ScanSentry dynamic token |
+| POST | /api/v1/scanner/report/ | Abuse report: `qr_token` or `url`, `category`, `description`, optional `evidence` image |
+
+**Analysis response** (`analyze` and each `decode` result):
+- `kind`: `url` · `phone` · `email` · `wifi` · `vcard` · `text` · `blocked_scheme` · `unsupported_scheme`
+- `preview`: human-readable content (Wi-Fi never echoes the password, only `password_present`)
+- `url`: host, punycode + display host, `is_idn`, `mixed_scripts`, `is_ip_address`, `uses_https` …
+- `observations`: neutral facts such as `mixed_scripts`, `redirect_parameter`, `embedded_credentials`.
+  These are **not verdicts**; the security engine (Milestone 4) turns facts into risk findings
+- `scansentry`: for ScanSentry links — `state`, publisher, and destination (only while active)
+- `actions`: `can_open`, `open_target`, `blocked`, `block_reason`, and `requires_user_confirmation: true`
+- `security.status` is `assessment_not_available` until Milestone 4
+
+The client must show the analysis and only open `actions.open_target` after the user taps a confirm button.
+Analysis performs **no network access** (a test enforces this).
+
+**Abuse reports**: stored for moderators in the admin. Reports never change a QR code or mark a
+domain malicious by themselves. The same reporter repeating the same report within
+`ABUSE_DEDUPE_HOURS` is stored once; different reporters are linked as duplicates. The
+reporter's IP is kept only as a keyed hash.
+
+### Deployment note: `NUM_PROXIES`
+Rate limits use the client address. Behind a reverse proxy/load balancer set `NUM_PROXIES` to the
+number of trusted proxies; with the default `0`, `X-Forwarded-For` is ignored so it cannot be spoofed.
+
 ## Settings modules
 `config.settings.local` (dev), `.test` (pytest, forced by pytest.ini), `.production`
 (HTTPS, HSTS, secure cookies; refuses to start with the default secret key).
@@ -100,4 +131,4 @@ Set `REDIRECT_BASE_URL` to the public domain that will serve `/r/<token>` (the w
 Session/device management, email change, QR codes, scanner, domain intelligence,
 security engine, billing, ads, credits, Celery/Redis. See the milestone plan.
 
-## Next: Milestone 3 — public scanner & verification (decode, explicit navigation consent, abuse reports)
+## Next: Milestone 4 — domain intelligence & security engine (RDAP, DNS, TLS, SSRF-safe checks, rules, threat-intel adapter)
