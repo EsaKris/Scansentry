@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 class DecodeRequestSerializer(serializers.Serializer):
     image = serializers.FileField()
+    assess = serializers.BooleanField(default=False, help_text="Also run the full security assessment (slower)")
 
 
 class RawContentField(serializers.CharField):
@@ -19,6 +20,7 @@ class RawContentField(serializers.CharField):
 
 class AnalyzeRequestSerializer(serializers.Serializer):
     content = RawContentField(trim_whitespace=True)
+    assess = serializers.BooleanField(default=False, help_text="Also run the full security assessment (slower)")
 
     def validate_content(self, value):
         if len(value) > settings.SCANNER_MAX_CONTENT_CHARS:

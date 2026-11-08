@@ -72,7 +72,17 @@ class FakeServer:
                 if not chunk:
                     return
                 data += chunk
-            text = data.decode("latin-1")
+            head, _, rest = data.partition(b"\r\n\r\n")
+            length = 0
+            for line in head.split(b"\r\n")[1:]:
+                if line.lower().startswith(b"content-length:"):
+                    length = int(line.split(b":", 1)[1])
+            while len(rest) < length:
+                chunk = sock.recv(4096)
+                if not chunk:
+                    break
+                rest += chunk
+            text = (head + b"\r\n\r\n" + rest).decode("latin-1")
             self.requests.append(text)
             if self.delay:
                 time.sleep(self.delay)
@@ -186,7 +196,9 @@ class World:
     def site(self, host, ip="93.184.216.34", *, http=None, https=None, tls_ctx=None):
         """Publish a host: DNS A record plus optional http (port 80) / https (port 443) handlers."""
         self.dns.set(host, "A", [ip])
+        server = None
         if http is not None:
-            self.net.add(ip, 80, http)
+            server = self.net.add(ip, 80, http)
         if https is not None:
-            self.net.add(ip, 443, https, tls_ctx or self.pki.server_context([host]))
+            server = self.net.add(ip, 443, https, tls_ctx or self.pki.server_context([host]))
+        return server

@@ -1,4 +1,4 @@
-# ScanSentry — Backend (Milestones 1–4A: Foundation + QR engine + Scanner + Domain intelligence)
+# ScanSentry — Backend (Milestones 1–4: Foundation, QR engine, Scanner, Domain intelligence, Security engine)
 
 Django 5.2 + Django REST Framework API shared by the web and Android clients.
 
@@ -18,8 +18,11 @@ Django 5.2 + Django REST Framework API shared by the web and Android clients.
 - **Domain intelligence (Milestone 4, part A):** SSRF-safe network layer, RDAP registration data, DNS /
   TLS / website checks, registration-status and hosting-status classification, versioned Domain Health
   score, cached assessments with history
-- 358 automated tests (generated codes are decoded back; the SSRF guard is tested against a fake internet
-  with real TLS handshakes, and mutation-checked)
+- **Security engine (Milestone 4, part B):** 22 admin-tunable rules, weighted risk score with a weak-indicator cap,
+  threat-intelligence provider adapters, redirect tracing for shortened links, AI-assisted explanations with strict
+  validation, a block-on-malicious redirect policy, scheduled re-checks
+- 576 automated tests (generated codes are decoded back; the SSRF guard and the security guarantees are tested
+  against a fake internet with real TLS handshakes, and mutation-checked)
 
 ## Quick start (local, SQLite)
 ```bash
@@ -173,6 +176,91 @@ Every line should show a real status; any `MISSING CHECK` or `PROVIDER ERROR` te
 - Check functions run in worker threads and must not touch the database.
 - Missing data is `null` / `not_disclosed` and listed in `missing_checks`. Never a default "clean" value.
 - WHOIS fallback is **not** implemented (port-43 egress and per-registry terms); RDAP only.
+- Security checks run synchronously (domain checks run in parallel; worst case about 30 s). Move to Celery if needed.
+
+## Security engine endpoints (Milestone 4B)
+| Method | Path | Notes |
+|---|---|---|
+| POST | /api/v1/security/analyze/ | **Public** (rate-limited). `{"url": "...", "trace": true, "ai": false}` |
+| GET | /api/v1/security/checks/{id}/ | A stored check by its unguessable id |
+| GET | /api/v1/security/providers/ | **Admins only.** Provider status, usage and health. Never returns credentials |
+| POST | /api/v1/scanner/analyze/ | now accepts `"assess": true` (also on `decode/`) to include the security assessment |
+| GET | /api/v1/scanner/verify/{token}/?assess=1 | verification with a fresh security assessment of the destination |
+
+**Classifications** (`classification`, with a human `classification_label`):
+`known_malicious` · `high_risk` · `suspicious` · `needs_further_verification` · `no_known_threat_detected` ·
+`assessment_unavailable`. There is deliberately no "safe".
+- `known_malicious` comes **only** from a threat-intelligence match for malware/phishing, never from a score
+- `no_known_threat_detected` is only returned when an *external* threat-intelligence source answered successfully,
+  the real destination was reached (redirect trace OK), and no rule crashed. Otherwise the result is
+  `needs_further_verification` (or `assessment_unavailable` if nothing external could run)
+- weak indicators (domain age, URL shortener, no HTTPS, unusual TLD, international host name) can add up to
+  `suspicious` but are capped below `high_risk`; `high_risk` needs one strong indicator or two moderate ones
+
+**Response highlights:** `findings` (rule key, `reason_code`, severity, strength, weight, evidence, recommended action,
+rule version), `risk_score`, `confidence`, `missing_checks`, `provider_errors`, `threat_intelligence.providers`
+(per-provider status), `domain` summary, `redirect_trace`, `explanation`, `scoring` (versions, ruleset hash, thresholds),
+`limitations`.
+
+**Rules** are defined in `apps/security_engine/rules.py` (detection logic) and tuned in the admin (**Security rules**:
+enable/disable, weight, severity, thresholds). Categories: URL structure (malformed, dangerous/unsupported scheme,
+credentials, encoded host, IP / obfuscated IP, IDN, mixed alphabets, excessive sub-domains, unusual encoding, redirect
+parameter, shortener, unusual TLD), impersonation (brand look-alike, brand + sensitive keyword), redirect chain, TLS
+(no HTTPS, invalid certificate), domain (registry hold, recently registered, resolves to private address) and threat
+intelligence (malware, phishing, unwanted software, suspicious listing). Every change is audited.
+
+**Configurable without a deploy** (`AppConfiguration` rows):
+| Key | Meaning | Default |
+|---|---|---|
+| `security.risk_thresholds` | `{"suspicious":35,"high_risk":65,"weak_only_cap":49}` | as shown |
+| `security.cache_minutes` | reuse of complete checks (incomplete: 5 min) | 30 |
+| `security.malicious_cache_hours` | how long a malicious finding keeps blocking | 24 |
+| `security.brand_domains` | brands protected from look-alikes (starter list is built in; extend for your market) | built-in list |
+| `security.url_shorteners` / `security.unusual_tlds` | lists used by the shortener / TLD rules | built-in lists |
+| `security.trace_shorteners` | follow redirects of known shorteners | true |
+| `security.auto_disable_malicious` | also disable the QR code on a confirmed malicious destination | false |
+| `default_entitlements` → `ai.explanations` | allow AI-worded explanations | allowed |
+
+### Threat-intelligence providers
+Managed in the admin (**Threat providers**): enable, timeout, retries, rate limit, `config` (e.g. `{"cache_ttl_seconds": 0}`),
+and the *name* of the environment variable that holds the key (secrets are never stored in the database). Usage metrics
+count every API call, including retries. Seeded on migrate:
+| Provider | Default | Notes |
+|---|---|---|
+| `local_blocklist` | on | Staff-managed entries (admin → Threat indicators, provider `local_blocklist`). Not an external source, so it can block but cannot by itself justify "no known threat" |
+| `google_web_risk` | off | **Commercially licensed** Google Cloud service (paid). To activate: create a Google Cloud project with billing, enable the Web Risk API, create an API key, set `THREAT_INTEL_API_KEY`, then enable it in the admin |
+| `test_fixture` | off | Controlled test data under `example.com`. **Keep disabled in production** |
+
+VirusTotal's public API and the free Google Safe Browsing API are non-commercial and are intentionally not included.
+A provider that fails (timeout, rejected key, rate limit, outage, unparsable answer) is reported in `provider_errors` and
+`missing_checks`; it is never turned into a clean result. Findings are saved (provider, reference, timestamps) as
+`ThreatIndicator` evidence; saved external findings are *not* re-served as a blocklist.
+
+### Redirect policy for confirmed-malicious destinations
+ScanSentry **never forwards a user** to a destination with a confirmed malicious finding. The verification response then
+has `state: "blocked"`, no `destination`, and the policy message; the scanner marks the action `blocked`. Suspicious and
+high-risk results are warnings; the user decides. The finding is cached per destination URL (query ignored) and kept for
+`security.malicious_cache_hours`. To keep codes blocked after that, schedule:
+```bash
+python manage.py recheck_destinations --limit 200   # e.g. hourly (cron / Celery beat)
+```
+and optionally set `security.auto_disable_malicious` so the code is disabled at staff level (the owner cannot undo it).
+
+### Redirect tracing
+Only for known URL shorteners (list above). The trace follows redirects through the same SSRF guard, flags loops, forbidden
+destinations and many unrelated domains, and the **final destination** is then assessed. Stored traces contain
+query-stripped URLs only.
+
+### AI explanations (optional)
+A deterministic, rule-based explanation always exists. If `AI_PROVIDER=anthropic` and `AI_API_KEY` are set, signed-in users
+can request `"ai": true`. The model receives only a small whitelisted evidence object: host, rule keys and their static
+meaning, severities, counts, statuses. **No paths, query strings or user data.** Its reply must pass strict validation
+(known finding keys only, same classification, no safety claims, length limits); otherwise the rule-based text is returned
+with an `ai_error` note. The AI can never change a classification. Set `AI_MODEL` (default `claude-sonnet-5-5`; verify the
+current name in Anthropic's docs). Anonymous requests never call the AI.
+
+### Privacy
+Query strings and fragments are removed before storage and before anything goes to a threat provider or the AI.
 
 ## Settings modules
 `config.settings.local` (dev), `.test` (pytest, forced by pytest.ini), `.production`
@@ -182,4 +270,4 @@ Every line should show a real status; any `MISSING CHECK` or `PROVIDER ERROR` te
 Session/device management, email change, QR codes, scanner, domain intelligence,
 security engine, billing, ads, credits, Celery/Redis. See the milestone plan.
 
-## Next: Milestone 4B — rule engine, threat-intelligence adapter, security risk score, AI explanations
+## Next: Milestone 5 — scan analytics, usage counters, owner security alerts, notifications

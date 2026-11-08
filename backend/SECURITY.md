@@ -54,8 +54,25 @@ makes tests fail).
 run the API where outbound traffic to private ranges and cloud metadata endpoints is blocked by the platform, and
 point `DNS_NAMESERVERS` at a trusted resolver.
 
+## Added in Milestone 4B: security engine
+- Classification honesty: no "safe" label anywhere; `known_malicious` only from a threat-intel match; a clean verdict
+  needs an answering external source, a reached destination and no crashed rule; missing checks are listed, never assumed clean
+- Weak indicators are capped below `high_risk`; scoring and rule configuration are versioned (ruleset hash stored per check)
+- Threat providers: credentials only from environment variables, sent in headers (not URLs), never returned by any API or
+  error message; commercial-licence notes shown to admins; failures reported, never converted to clean results
+- Privacy: query strings/fragments stripped before storage, provider calls and AI calls; stored redirect traces redacted
+- AI: whitelisted evidence only, strict output validation, cannot change a verdict or claim safety, falls back to rule-based text
+- Redirect policy blocks confirmed-malicious destinations (optionally disables the code at staff level)
+- Rule, provider and indicator changes made in the admin are audited
+Mutation-checked guarantees (each breaks a test if removed): weak-indicator cap, clean verdict requires an answering
+provider, provider failure is not an answer, redirect policy, AI cannot change the verdict, AI safety claims rejected,
+query strings never stored or sent.
+
 ## Known gaps (tracked for later milestones)
 - Image decoding uses OpenCV, which misses a few percent of hard photos; the client camera decoder is the primary path
+- The built-in brand list and abuse-heavy-TLD list are starter data; tune them for your market. Look-alike detection will have false negatives and some false positives
+- Redirect-policy blocks rely on a cached finding per destination URL; run `recheck_destinations` on a schedule
+- The risk score is a transparent weighted sum, not a validated model
 - Login throttling is per-IP; add per-account lockout/backoff
 - Throttle counters need Redis (not per-process memory) when running multiple workers
 - No device/session management yet

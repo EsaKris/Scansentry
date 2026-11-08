@@ -51,3 +51,44 @@ def make_qr(client, **overrides):
             "data": {"url": "https://example.com/menu"}}
     body.update(overrides)
     return client.post("/api/v1/qr/", body, format="json")
+
+
+# ---- shared fake-internet environment for domain / security tests ------------------------------------------
+@pytest.fixture
+def senv(monkeypatch, tmp_path):
+    from datetime import datetime, timezone
+    from types import SimpleNamespace
+
+    from django.core.cache import cache
+
+    from apps.domain_intel import service as domain_service
+    from apps.domain_intel.rdap import parse_rdap_domain
+    from tests.netfakes import World, http_response
+    from tests.test_domain_unit import SAMPLE
+
+    cache.clear()
+    w = World(tmp_path)
+    monkeypatch.setattr(domain_service, "build_dns_client", lambda: w.dns)
+    monkeypatch.setattr(domain_service, "build_guard", lambda dns=None: w.guard)
+    state = {"result": None, "flags": None}
+
+    def rdap_result(flags=None):
+        now = datetime.now(timezone.utc)
+        data = parse_rdap_domain({**SAMPLE, **({"status": flags} if flags else {})}, now=now)
+        return {"ok": True, "status": data["status"], "data": data, "source": "https://rdap.test/domain/x",
+                "error": None, "observed_at": now.isoformat()}
+
+    monkeypatch.setattr(domain_service, "lookup_rdap",
+                        lambda reg, tld, guard, now=None: state["result"] or rdap_result(state["flags"]))
+
+    def publish(host, ip="93.184.216.34", body="<h1>site</h1>", status=200):
+        w.site(host, ip, https=lambda r: http_response(status, body))
+        w.dns.set(host, "NS", ["a.ns.example.net.", "b.ns.example.net."])
+        return w
+
+    return SimpleNamespace(world=w, rdap_state=state, publish=publish, domain_service=domain_service)
+
+
+def enable_provider(key, **fields):
+    from apps.threat_intel.models import ThreatProvider
+    ThreatProvider.objects.filter(key=key).update(enabled=True, **fields)

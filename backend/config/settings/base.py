@@ -35,6 +35,8 @@ INSTALLED_APPS = [
     "apps.scanner",
     "apps.abuse_reports",
     "apps.domain_intel",
+    "apps.threat_intel",
+    "apps.security_engine",
 ]
 
 MIDDLEWARE = [
@@ -71,12 +73,14 @@ TEMPLATES = [
 # Use the direct or session-pooler connection string for migrations.
 # If you use Supabase's transaction pooler (port 6543), set
 # DB_DISABLE_SERVER_SIDE_CURSORS=true.
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
 # DATABASES = {
 #     "default": dj_database_url.config(
 #         env="DATABASE_URL",
@@ -142,6 +146,8 @@ REST_FRAMEWORK = {
         "abuse_report": "5/hour",
         "domain_anon": "20/hour",
         "domain_user": "100/hour",
+        "security_anon": "30/hour",
+        "security_user": "200/hour",
     },
 }
 
@@ -208,3 +214,10 @@ RDAP_TIMEOUT = float(env("RDAP_TIMEOUT", "8"))
 # JSON, e.g. {"fallback_base": "https://rdap.example.net"}. No fallback by default: verify a
 # provider's terms of service before using it commercially.
 RDAP_PROVIDER_CONFIG = _json.loads(env("RDAP_PROVIDER_CONFIG", "") or "{}")
+
+# --- AI explanations (optional) -------------------------------------------------------------
+# AI only EXPLAINS deterministic findings. Leave AI_PROVIDER empty to use rule-based explanations only.
+AI_PROVIDER = env("AI_PROVIDER", "")                         # "anthropic" or ""
+AI_API_KEY = env("AI_API_KEY", "")
+AI_MODEL = env("AI_MODEL", "claude-sonnet-5-5")              # verify the current model name in Anthropic's docs
+AI_TIMEOUT = float(env("AI_TIMEOUT", "10"))

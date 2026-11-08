@@ -1026,6 +1026,75 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/v1/security/analyze/:
+    post:
+      operationId: security_analyze_create
+      description: Security assessment of a web link. Public (rate-limited); results
+        are explained with evidence.
+      tags:
+      - security
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecurityAnalyzeRequest'
+        required: true
+      security:
+      - jwtAuthOptional: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/security/checks/{id}/:
+    get:
+      operationId: security_checks_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - security
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/security/providers/:
+    get:
+      operationId: security_providers_retrieve
+      description: Administrators only. Never returns credentials.
+      tags:
+      - security
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
 components:
   schemas:
     AbuseReportCreate:
@@ -1058,6 +1127,10 @@ components:
       properties:
         content:
           type: string
+        assess:
+          type: boolean
+          default: false
+          description: Also run the full security assessment (slower)
       required:
       - content
     Campaign:
@@ -1119,6 +1192,10 @@ components:
         image:
           type: string
           format: uri
+        assess:
+          type: boolean
+          default: false
+          description: Also run the full security assessment (slower)
       required:
       - image
     DomainAnalyzeRequest:
@@ -1632,6 +1709,22 @@ components:
       required:
       - email
       - password
+    SecurityAnalyzeRequest:
+      type: object
+      properties:
+        url:
+          type: string
+          maxLength: 2048
+        trace:
+          type: boolean
+          default: true
+          description: Follow redirects of known URL shorteners
+        ai:
+          type: boolean
+          default: false
+          description: Request an AI-worded explanation (signed-in, if enabled)
+      required:
+      - url
     StatusEnum:
       enum:
       - active

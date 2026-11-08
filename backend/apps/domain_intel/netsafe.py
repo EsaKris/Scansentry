@@ -185,7 +185,8 @@ class NetGuard:
 
     # -- fetch ---------------------------------------------------------------------------------------
     def fetch(self, url: str, *, accept="text/html,*/*;q=0.5", max_body=None, require_https=False,
-              read_body=True) -> FetchResult:
+              read_body=True, method="GET", body=None, headers=None) -> FetchResult:
+        """GET by default. Non-GET requests (used for provider APIs) never follow redirects."""
         result = FetchResult(url=url)
         deadline = time.monotonic() + self.total_timeout
         limit = max_body or self.max_body
@@ -223,14 +224,15 @@ class NetGuard:
                 path = parts.path or "/"
                 if parts.query:
                     path += "?" + parts.query
-                conn.request("GET", path, headers={
-                    "Host": parts.netloc.rsplit("@", 1)[-1], "User-Agent": USER_AGENT, "Accept": accept,
-                    "Accept-Encoding": "identity", "Connection": "close"})
+                req_headers = {"Host": parts.netloc.rsplit("@", 1)[-1], "User-Agent": USER_AGENT,
+                               "Accept": accept, "Accept-Encoding": "identity", "Connection": "close"}
+                req_headers.update(headers or {})
+                conn.request(method, path, body=body, headers=req_headers)
                 resp = conn.getresponse()
                 status = resp.status
                 headers = {k.lower(): v[:300] for k, v in resp.getheaders() if k.lower() in KEEP_HEADERS}
                 body = b""
-                if read_body and status not in REDIRECT_CODES:
+                if read_body and not (method == "GET" and status in REDIRECT_CODES):
                     while len(body) < limit and time.monotonic() < deadline:
                         chunk = resp.read(min(4096, limit - len(body)))
                         if not chunk:
@@ -250,7 +252,7 @@ class NetGuard:
 
             hop = {"url": current, "status": status, "ip": ip, "location": headers.get("location")}
             result.redirects.append(hop)
-            if status in REDIRECT_CODES and headers.get("location"):
+            if method == "GET" and status in REDIRECT_CODES and headers.get("location"):
                 if len(result.redirects) > self.max_redirects:
                     result.error, result.error_detail = "too_many_redirects", "Too many redirects."
                     return result
