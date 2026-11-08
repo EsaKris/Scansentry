@@ -1,4 +1,4 @@
-# ScanSentry — Backend (Milestones 1–3: Foundation + QR engine + Scanner)
+# ScanSentry — Backend (Milestones 1–4A: Foundation + QR engine + Scanner + Domain intelligence)
 
 Django 5.2 + Django REST Framework API shared by the web and Android clients.
 
@@ -15,7 +15,11 @@ Django 5.2 + Django REST Framework API shared by the web and Android clients.
   campaigns, logo upload, PNG / SVG / PDF export, live preview, scannability checks
 - **Scanner (Milestone 3):** server-side image decoding, content analysis for every QR payload type,
   dangerous-scheme blocking, ScanSentry link resolution, public abuse reporting with moderator review
-- 146 automated tests (generated codes are decoded back in tests to prove they scan)
+- **Domain intelligence (Milestone 4, part A):** SSRF-safe network layer, RDAP registration data, DNS /
+  TLS / website checks, registration-status and hosting-status classification, versioned Domain Health
+  score, cached assessments with history
+- 358 automated tests (generated codes are decoded back; the SSRF guard is tested against a fake internet
+  with real TLS handshakes, and mutation-checked)
 
 ## Quick start (local, SQLite)
 ```bash
@@ -123,6 +127,53 @@ reporter's IP is kept only as a keyed hash.
 Rate limits use the client address. Behind a reverse proxy/load balancer set `NUM_PROXIES` to the
 number of trusted proxies; with the default `0`, `X-Forwarded-For` is ignored so it cannot be spoofed.
 
+## Domain intelligence endpoints (Milestone 4A)
+| Method | Path | Notes |
+|---|---|---|
+| POST | /api/v1/domains/analyze/ | **Public** (rate-limited). `{"value": "<url or domain>", "refresh": false}`. Signed-in users also get history and may `refresh` |
+| GET | /api/v1/domains/assessments/{id}/ | A stored assessment by its unguessable id |
+| GET | /api/v1/domains/history/ | The signed-in user's lookups (`?domain=` filter) |
+
+**What an assessment contains:** `registration` (RDAP: created / expires / updated, `age_days`, `age_group`,
+registrar, nameservers, `raw_status_flags`, normalised `status` + explanation, `not_disclosed` fields),
+`dns`, `tls`, `website` (`hosting_status`, HTTP status, redirects, evidence, confidence),
+`scores.domain_health`, `missing_checks`, `provider_errors`, `completion_status`
+(`complete`/`partial`/`failed`), `confidence`, `limitations`. `scores.security_risk` is `null` until Part B.
+
+**Registration statuses:** `REGISTERED_ACTIVE` · `REGISTRY_HOLD` · `REGISTRAR_HOLD` · `REDEMPTION_PERIOD` ·
+`PENDING_DELETION` · `INACTIVE_OR_UNDELEGATED` · `EXPIRED_OR_NOT_RENEWED` (only when the expiry date is evidence) ·
+`NOT_FOUND` · `UNKNOWN` · `LOOKUP_UNAVAILABLE`. Transfer/delete/update locks are *not* suspensions.
+**Website statuses:** `WEBSITE_RESPONDING` · `WEBSITE_UNAVAILABLE` · `DNS_FAILURE` ·
+`HOSTING_SUSPENSION_SUSPECTED` (low confidence) · `HOSTING_SUSPENSION_INDICATOR_DETECTED` (medium, heuristic) · `UNKNOWN`.
+An HTTP 403/404/5xx, a timeout or a DNS error alone never produces a suspension status, and nothing is ever
+called "confirmed".
+
+**Configurable without a deploy** (rows in `AppConfiguration`, via the admin):
+| Key | Meaning | Default |
+|---|---|---|
+| `domain.cache_hours` | how long a complete assessment is reused | 24 |
+| `domain.error_cache_minutes` | cache for partial/failed assessments | 15 |
+| `domain.rdap_cache_hours` | how long registry answers are reused | 24 |
+| `domain.age_thresholds_days` | `{"newly_registered":30,"recently_registered":180,"established":1825}` | as shown |
+| `domain.health_weights` | `{"registration":30,"dns":25,"tls":20,"website":20,"configuration":5}` | as shown |
+| `default_entitlements` | e.g. `{"domain.lookups.daily_limit": 10, "domain.lookups.weekly_limit": ..., "domain.lookups.monthly_limit": ...}` | unlimited |
+
+**Live smoke test (run this from the server's network before launch):**
+```bash
+python manage.py assess_domain example.com          # readable summary
+python manage.py assess_domain example.com --json   # full result
+```
+Every line should show a real status; any `MISSING CHECK` or `PROVIDER ERROR` tells you which outbound dependency
+(RDAP bootstrap, DNS resolver, port 443/80 egress) is blocked.
+
+**Design rules to keep when extending**
+- Only `/` of a host is ever requested. A submitted URL's path/query is never sent anywhere (it may hold secrets
+  or trigger actions).
+- **All outbound HTTP goes through `NetGuard`** (`apps/domain_intel/netsafe.py`): see SECURITY.md.
+- Check functions run in worker threads and must not touch the database.
+- Missing data is `null` / `not_disclosed` and listed in `missing_checks`. Never a default "clean" value.
+- WHOIS fallback is **not** implemented (port-43 egress and per-registry terms); RDAP only.
+
 ## Settings modules
 `config.settings.local` (dev), `.test` (pytest, forced by pytest.ini), `.production`
 (HTTPS, HSTS, secure cookies; refuses to start with the default secret key).
@@ -131,4 +182,4 @@ number of trusted proxies; with the default `0`, `X-Forwarded-For` is ignored so
 Session/device management, email change, QR codes, scanner, domain intelligence,
 security engine, billing, ads, credits, Celery/Redis. See the milestone plan.
 
-## Next: Milestone 4 — domain intelligence & security engine (RDAP, DNS, TLS, SSRF-safe checks, rules, threat-intel adapter)
+## Next: Milestone 4B — rule engine, threat-intelligence adapter, security risk score, AI explanations

@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "apps.qr_codes",
     "apps.scanner",
     "apps.abuse_reports",
+    "apps.domain_intel",
 ]
 
 MIDDLEWARE = [
@@ -71,16 +72,22 @@ TEMPLATES = [
 # If you use Supabase's transaction pooler (port 6543), set
 # DB_DISABLE_SERVER_SIDE_CURSORS=true.
 DATABASES = {
-    "default": dj_database_url.config(
-        env="DATABASE_URL",
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=env_int("DB_CONN_MAX_AGE", 60),
-        ssl_require=env_bool("DB_SSL_REQUIRE", False),
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
-DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = env_bool(
-    "DB_DISABLE_SERVER_SIDE_CURSORS", False
-)
+# DATABASES = {
+#     "default": dj_database_url.config(
+#         env="DATABASE_URL",
+#         default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+#         conn_max_age=env_int("DB_CONN_MAX_AGE", 60),
+#         ssl_require=env_bool("DB_SSL_REQUIRE", False),
+#     )
+# }
+# DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = env_bool(
+#     "DB_DISABLE_SERVER_SIDE_CURSORS", False
+# )
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # --- Auth ---------------------------------------------------------------------
@@ -133,6 +140,8 @@ REST_FRAMEWORK = {
         "scanner_decode": "30/min",
         "scanner_analyze": "60/min",
         "abuse_report": "5/hour",
+        "domain_anon": "20/hour",
+        "domain_user": "100/hour",
     },
 }
 
@@ -183,3 +192,19 @@ SCANNER_MAX_IMAGE_PIXELS = env_int("SCANNER_MAX_IMAGE_PIXELS", 20_000_000)
 SCANNER_MAX_CONTENT_CHARS = env_int("SCANNER_MAX_CONTENT_CHARS", 4096)
 ABUSE_EVIDENCE_MAX_BYTES = env_int("ABUSE_EVIDENCE_MAX_BYTES", 2_000_000)
 ABUSE_DEDUPE_HOURS = env_int("ABUSE_DEDUPE_HOURS", 24)
+
+# --- Domain intelligence / outbound network safety -----------------------------------
+import json as _json
+
+DOMAIN_CHECK_TIMEOUT = env_int("DOMAIN_CHECK_TIMEOUT", 20)              # whole assessment, seconds
+NETGUARD_CONNECT_TIMEOUT = float(env("NETGUARD_CONNECT_TIMEOUT", "5"))
+NETGUARD_TOTAL_TIMEOUT = float(env("NETGUARD_TOTAL_TIMEOUT", "10"))     # one fetch incl. redirects
+NETGUARD_MAX_REDIRECTS = env_int("NETGUARD_MAX_REDIRECTS", 5)
+NETGUARD_MAX_BODY_BYTES = env_int("NETGUARD_MAX_BODY_BYTES", 65536)
+DNS_NAMESERVERS = env_list("DNS_NAMESERVERS", "")                       # empty = system resolver
+DNS_TIMEOUT = float(env("DNS_TIMEOUT", "4"))
+RDAP_BOOTSTRAP_URL = env("RDAP_BOOTSTRAP_URL", "https://data.iana.org/rdap/dns.json")
+RDAP_TIMEOUT = float(env("RDAP_TIMEOUT", "8"))
+# JSON, e.g. {"fallback_base": "https://rdap.example.net"}. No fallback by default: verify a
+# provider's terms of service before using it commercially.
+RDAP_PROVIDER_CONFIG = _json.loads(env("RDAP_PROVIDER_CONFIG", "") or "{}")

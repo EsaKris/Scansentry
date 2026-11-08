@@ -18,11 +18,13 @@ def user(db):
 
 
 @pytest.fixture
-def auth_client(api, user):
-    resp = api.post("/api/v1/auth/login/", {"email": user.email, "password": PASSWORD})
-    api.credentials(HTTP_AUTHORIZATION=f"Bearer {resp.data['access']}")
-    api.refresh_token = resp.data["refresh"]
-    return api
+def auth_client(user):
+    """A separate client from `api`, so tests using both really have one signed-in and one anonymous caller."""
+    client = APIClient()
+    resp = client.post("/api/v1/auth/login/", {"email": user.email, "password": PASSWORD})
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {resp.data['access']}")
+    client.refresh_token = resp.data["refresh"]
+    return client
 
 
 @pytest.fixture

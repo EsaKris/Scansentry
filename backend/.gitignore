@@ -7,4 +7,3 @@ staticfiles/
 .venv/
 venv/
 .pytest_cache/
-.env.example

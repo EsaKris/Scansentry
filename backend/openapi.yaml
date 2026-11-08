@@ -373,6 +373,80 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/v1/domains/analyze/:
+    post:
+      operationId: domains_analyze_create
+      description: Public domain checker (rate-limited). Signed-in users also get
+        history and may force a refresh.
+      tags:
+      - domains
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DomainAnalyzeRequest'
+        required: true
+      security:
+      - jwtAuthOptional: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/domains/assessments/{id}/:
+    get:
+      operationId: domains_assessments_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - domains
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/domains/history/:
+    get:
+      operationId: domains_history_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - domains
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedHistoryList'
+          description: ''
   /api/v1/health/:
     get:
       operationId: health_retrieve
@@ -1047,6 +1121,17 @@ components:
           format: uri
       required:
       - image
+    DomainAnalyzeRequest:
+      type: object
+      properties:
+        value:
+          type: string
+          maxLength: 2048
+        refresh:
+          type: boolean
+          default: false
+      required:
+      - value
     ErrorCorrectionEnum:
       enum:
       - L
@@ -1076,6 +1161,49 @@ components:
       required:
       - database
       - status
+    History:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        assessment_id:
+          type: string
+          format: uuid
+          readOnly: true
+        domain:
+          type: string
+        submitted_value:
+          type: string
+          maxLength: 300
+        served_from_cache:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        checked_at:
+          type: string
+          format: date-time
+        domain_health_score:
+          type: integer
+        registration_status:
+          type: string
+        hosting_status:
+          type: string
+        completion_status:
+          type: string
+      required:
+      - assessment_id
+      - checked_at
+      - completion_status
+      - created_at
+      - domain
+      - domain_health_score
+      - hosting_status
+      - id
+      - registration_status
+      - submitted_value
     LogoUpload:
       type: object
       properties:
@@ -1114,6 +1242,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Campaign'
+    PaginatedHistoryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/History'
     PaginatedQRCodeList:
       type: object
       required:
