@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  /* ScanSentry Brand Colors */
+  --color-brand-navy: #0F172A;
+  --color-brand-charcoal: #1E293B;
+  --color-brand-teal: #0D9488;
+  --color-brand-cyan: #06B6D4;
+  
+  /* Risk Status Colors */
+  --color-risk-clean: #10B981;
+  --color-risk-suspicious: #F59E0B;
+  --color-risk-malicious: #EF4444;
+  --color-risk-unknown: #6B7280;
+}
+
+/* We will let the components control the background, not the body */
+body {
+  @apply text-slate-900 antialiased;
+}
