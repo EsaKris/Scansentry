@@ -211,4 +211,9 @@ def analyze(content: str, *, user=None, source: str = "api", trace: bool = True,
                  "note": scoring.SCORING_NOTE, "evidence": evidence},
         completion_status="complete" if complete else "partial", engine_version=scoring.ENGINE_VERSION,
         checked_at=now, cache_expires_at=now + ttl)
+    try:
+        from apps.notifications.service import alert_destination_flagged
+        alert_destination_flagged(check)
+    except Exception:
+        log.exception("could not send destination alerts")
     return check, False

@@ -37,6 +37,8 @@ INSTALLED_APPS = [
     "apps.domain_intel",
     "apps.threat_intel",
     "apps.security_engine",
+    "apps.analytics",
+    "apps.notifications",
 ]
 
 MIDDLEWARE = [
@@ -73,7 +75,6 @@ TEMPLATES = [
 # Use the direct or session-pooler connection string for migrations.
 # If you use Supabase's transaction pooler (port 6543), set
 # DB_DISABLE_SERVER_SIDE_CURSORS=true.
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -221,3 +222,10 @@ AI_PROVIDER = env("AI_PROVIDER", "")                         # "anthropic" or ""
 AI_API_KEY = env("AI_API_KEY", "")
 AI_MODEL = env("AI_MODEL", "claude-sonnet-5-5")              # verify the current model name in Anthropic's docs
 AI_TIMEOUT = float(env("AI_TIMEOUT", "10"))
+
+# --- Analytics (privacy-conscious) -----------------------------------------------------------
+# Country/region are recorded ONLY when your CDN/reverse proxy supplies them in a header (e.g. Cloudflare's
+# CF-IPCountry). Empty = off. The proxy must strip these headers from client requests so they cannot be spoofed.
+GEO_COUNTRY_HEADER = env("GEO_COUNTRY_HEADER", "")
+GEO_REGION_HEADER = env("GEO_REGION_HEADER", "")
+ANALYTICS_DEDUPE_SECONDS = env_int("ANALYTICS_DEDUPE_SECONDS", 30)

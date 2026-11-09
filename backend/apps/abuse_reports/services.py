@@ -65,6 +65,9 @@ def submit_report(*, request, qr_token, url, category, description, evidence):
     if evidence_file is not None:
         report.evidence_file.save(evidence_file.name, evidence_file, save=False)
     report.save()
+    if qr is not None:
+        from apps.notifications.service import alert_abuse_report
+        alert_abuse_report(qr, category)      # category only: the reporter's identity is never shared
     return report
 
 

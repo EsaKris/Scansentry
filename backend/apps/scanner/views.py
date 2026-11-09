@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from apps.analytics.service import record_scan
 from apps.qr_codes.services import resolve_token
 
 from . import decoding
@@ -39,7 +40,30 @@ def _block(actions: dict, reason: str) -> None:
     actions.update(can_open=False, action=None, blocked=True, block_reason=reason, open_target=None)
 
 
-def full_analysis(content: str, *, assess: bool = False) -> dict:
+_OUTCOME = {"active": "delivered", "paused": "paused", "disabled": "disabled", "expired": "expired", "blocked": "blocked"}
+
+
+def _sec_status(sec: dict | None) -> str:
+    status = (sec or {}).get("status", "")
+    return "" if status == "assessment_not_available" else status
+
+
+def full_analysis(content: str, *, assess: bool = False, request=None, scanner_type: str = "camera") -> dict:
+    """Analyse content and (when a request is supplied) record a privacy-conscious scan event."""
+    result = _full_analysis(content, assess=assess)
+    qr = result.pop("_qr", None)
+    if request is not None:
+        sc = result.get("scansentry") or {}
+        if qr is not None:
+            record_scan(request, qr=qr, outcome=_OUTCOME.get(sc.get("state"), "delivered"), scanner_type=scanner_type,
+                        security_status=_sec_status(result.get("security")))
+        elif not sc:     # an external code: counted for platform statistics only, no content kept
+            record_scan(request, qr=None, outcome="analyzed", scanner_type=scanner_type,
+                        security_status=_sec_status(result.get("security")), content_kind=result["kind"])
+    return result
+
+
+def _full_analysis(content: str, *, assess: bool = False) -> dict:
     """analyze_content plus ScanSentry-managed link resolution.
 
     Default: no network access (cached security results only). assess=True also runs the full security
@@ -76,6 +100,7 @@ def full_analysis(content: str, *, assess: bool = False) -> dict:
         return result
 
     verification = build_verification(qr, assess=assess)
+    result["_qr"] = qr
     result["scansentry"] = {"managed": True, **verification}
     result["security"] = verification["security"]
     if verification["state"] == "blocked":          # redirect policy: confirmed malicious destination
@@ -106,7 +131,8 @@ class DecodeView(PublicScannerView):
         ser.is_valid(raise_exception=True)
         contents = decoding.decode_upload(ser.validated_data["image"])  # in memory only
         assess = ser.validated_data.get("assess", False)
-        results = [{"content": c[:4096], "analysis": full_analysis(c[:4096], assess=assess)} for c in contents]
+        results = [{"content": c[:4096], "analysis": full_analysis(c[:4096], assess=assess, request=request,
+                                                                    scanner_type="upload")} for c in contents]
         return Response({"found": bool(results), "count": len(results), "results": results})
 
 
@@ -118,7 +144,8 @@ class AnalyzeView(PublicScannerView):
     def post(self, request):
         ser = AnalyzeRequestSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        return Response(full_analysis(ser.validated_data["content"], assess=ser.validated_data["assess"]))
+        return Response(full_analysis(ser.validated_data["content"], assess=ser.validated_data["assess"],
+                                      request=request, scanner_type=ser.validated_data["scanner_type"]))
 
 
 class VerifyTokenView(PublicScannerView):
@@ -132,4 +159,7 @@ class VerifyTokenView(PublicScannerView):
         if qr is None:
             return _not_found()
         assess = request.query_params.get("assess", "").lower() in ("1", "true", "yes")
-        return Response(build_verification(qr, assess=assess))
+        body = build_verification(qr, assess=assess)
+        record_scan(request, qr=qr, outcome=_OUTCOME.get(body["state"], "delivered"),
+                    scanner_type=request.query_params.get("via", "link"), security_status=_sec_status(body.get("security")))
+        return Response(body)

@@ -68,11 +68,25 @@ Mutation-checked guarantees (each breaks a test if removed): weak-indicator cap,
 provider, provider failure is not an answer, redirect policy, AI cannot change the verdict, AI safety claims rejected,
 query strings never stored or sent.
 
+## Added in Milestone 5: analytics, notifications, usage
+- Data minimisation: no IP address, user agent or URL in analytics; the visitor hash is keyed, daily-rotating and not reversible;
+  country/region only from an operator-controlled header, validated (2 letters / control characters stripped)
+- Strict isolation: every analytics, notification and activity query is scoped to the owner; other users' IDs return 404
+- Bot/preview traffic excluded; scans de-duplicated; recording failures never affect scanning
+- Notifications and alerts carry host names only; reporter identity never shared; staff identity never exposed in activity
+- Email only to verified addresses and only per preference; usage limits enforced atomically on the backend
+- CSV export neutralises formula injection; retention is enforced by a scheduled command
+Mutation-checked: owner scoping, bot exclusion, hash keying and daily rotation, scan de-duplication, usage limits,
+notification de-duplication, email-to-unverified, URL-in-notification and CSV injection.
+
 ## Known gaps (tracked for later milestones)
 - Image decoding uses OpenCV, which misses a few percent of hard photos; the client camera decoder is the primary path
 - The built-in brand list and abuse-heavy-TLD list are starter data; tune them for your market. Look-alike detection will have false negatives and some false positives
 - Redirect-policy blocks rely on a cached finding per destination URL; run `recheck_destinations` on a schedule
 - The risk score is a transparent weighted sum, not a validated model
+- Analytics aggregates run live over the events table; add pre-aggregated rollups if volumes become large
+- 'Unique' scan figures are daily estimates summed across days, not distinct people
+- Notifications and email are sent synchronously; move to a queue (Celery) at scale
 - Login throttling is per-IP; add per-account lockout/backoff
 - Throttle counters need Redis (not per-process memory) when running multiple workers
 - No device/session management yet

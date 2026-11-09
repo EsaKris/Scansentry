@@ -1,4 +1,4 @@
-# ScanSentry — Backend (Milestones 1–4: Foundation, QR engine, Scanner, Domain intelligence, Security engine)
+# ScanSentry — Backend (Milestones 1–5: Foundation, QR engine, Scanner, Domain intelligence, Security engine, Analytics & notifications)
 
 Django 5.2 + Django REST Framework API shared by the web and Android clients.
 
@@ -21,8 +21,10 @@ Django 5.2 + Django REST Framework API shared by the web and Android clients.
 - **Security engine (Milestone 4, part B):** 22 admin-tunable rules, weighted risk score with a weak-indicator cap,
   threat-intelligence provider adapters, redirect tracing for shortened links, AI-assisted explanations with strict
   validation, a block-on-malicious redirect policy, scheduled re-checks
-- 576 automated tests (generated codes are decoded back; the SSRF guard and the security guarantees are tested
-  against a fake internet with real TLS handshakes, and mutation-checked)
+- **Analytics & notifications (Milestone 5):** privacy-conscious scan analytics, atomic usage counters, owner security
+  alerts, in-app notifications with email preferences, activity history, data-retention enforcement
+- 667 automated tests (generated codes are decoded back; the SSRF guard, security guarantees and privacy/isolation rules are
+  tested against a fake internet with real TLS handshakes, and mutation-checked)
 
 ## Quick start (local, SQLite)
 ```bash
@@ -262,6 +264,62 @@ current name in Anthropic's docs). Anonymous requests never call the AI.
 ### Privacy
 Query strings and fragments are removed before storage and before anything goes to a threat provider or the AI.
 
+## Analytics, usage, notifications & activity (Milestone 5)
+| Method | Path | Notes |
+|---|---|---|
+| GET | /api/v1/analytics/overview/ | Totals, change vs previous period, code counts, top codes, devices |
+| GET | /api/v1/analytics/scans/ | Time series + breakdowns. `days` or `from`/`to`, `granularity=day\|week\|month`, `tz=Africa/Lagos`, `qr=<id>`, `export=csv` |
+| GET | /api/v1/analytics/qr-performance/ | Per-code table + campaign comparison (`export=csv`) |
+| GET | /api/v1/qr/{id}/analytics/ | One code (owner only) |
+| GET | /api/v1/usage/overview/ · /usage/limits/ | Used / limit / remaining and the exact reset time (UTC) per window |
+| GET | /api/v1/notifications/ | `?unread=true&kind=&severity=` |
+| POST | /api/v1/notifications/{id}/read/ · /notifications/read-all/ | |
+| GET | /api/v1/notifications/unread-count/ | `unread`, `critical_unread` |
+| GET/PATCH | /api/v1/notifications/preferences/ | Email preferences only (see below) |
+| GET | /api/v1/qr/{id}/activity/ · /api/v1/activity/ | Audit trail of one code / of the signed-in user |
+
+**What is recorded per scan** (`ScanEvent`): time, outcome (delivered / paused / disabled / expired / blocked / analysed),
+device category, browser family, scanner type (camera / upload / link), security status at scan, optional country/region,
+and a daily-rotating visitor hash. **Never stored:** IP address, user agent, URL or any scanned content.
+- *Unique estimates* use `HMAC(secret, date|IP|UA)` truncated to 16 hex characters. It is keyed, rotates every UTC day and
+  cannot be linked across days or reversed, so it estimates "unique scans per day" without identifying anyone.
+  Multi-day uniques are the sum of daily uniques (documented in every response's `privacy_note`)
+- *Country/region* are recorded only when your CDN/proxy supplies them: set `GEO_COUNTRY_HEADER` (e.g. `CF-IPCountry`) and
+  optionally `GEO_REGION_HEADER`. The proxy must strip these headers from client requests. Off by default; nothing is
+  derived from the IP address
+- Link-preview and crawler traffic (WhatsApp, Slack, Facebook, Googlebot, curl ...) is stored flagged `is_bot` and
+  excluded from all analytics. The same device scanning the same code within `ANALYTICS_DEDUPE_SECONDS` (30) counts once
+- Recording can never break a scan: failures are logged and swallowed
+- Scans of non-ScanSentry codes through the public scanner are stored without an owner (platform statistics only)
+- Entitlements: `qr.analytics.basic` (totals, trend, device / scanner / outcome) and `qr.analytics.advanced` (browser,
+  country, region, security status, campaign comparison, CSV export) are enforced on the backend; locked sections are listed in `locked`
+- CSV exports neutralise spreadsheet formula injection
+
+**Usage counters** (`UsageCounter`) are atomic per user / feature / window (UTC day, Monday-week, month). `consume()` locks
+the rows, checks every limit and only then increments, so concurrent requests cannot jointly exceed a limit; a refused call
+changes nothing and the error states the exact reset time. Domain lookups use it today; the entitlement keys
+(`domain.lookups.daily_limit` ...) live in `default_entitlements` until Milestone 6 adds plans. Bad input and anonymous checks
+never use an allowance.
+
+**Notifications**: in-app notifications are always created (they are safety information); preferences control **email only**
+(`email_security_alerts`, `email_qr_status`, `email_abuse_reports`), and email is sent only to verified addresses.
+Events: destination flagged (high risk / known malicious, to every owner of an active code pointing there), code disabled
+by staff or by the malicious-destination policy, code restored, destination changed (in-app only), abuse report received
+(category only, never the reporter), code expiring soon. Messages and payloads contain host names only, never full URLs.
+Duplicates within 24 hours are suppressed. Mail failures never lose the notification.
+
+**Activity history** shows what happened to a code, including staff and system actions. Staff are shown as
+`scansentry_staff`, never by name; IP addresses are never exposed; the API is read-only.
+
+**Retention** is enforced, not just stated. Schedule daily (and `send_expiry_reminders` daily):
+```bash
+python manage.py purge_old_data            # add --dry-run to preview
+python manage.py send_expiry_reminders --days 3
+```
+Configurable via `AppConfiguration`: `retention.scan_events_days` (395), `retention.notifications_days` (180, read only),
+`retention.security_checks_days` (90), `retention.domain_assessments_days` (365), `retention.usage_counters_days` (400).
+A value of 0 is clamped to 1 day; unparsable values fall back to the default. Disclose analytics and retention in your privacy policy.
+
 ## Settings modules
 `config.settings.local` (dev), `.test` (pytest, forced by pytest.ini), `.production`
 (HTTPS, HSTS, secure cookies; refuses to start with the default secret key).
@@ -270,4 +328,4 @@ Query strings and fragments are removed before storage and before anything goes 
 Session/device management, email change, QR codes, scanner, domain intelligence,
 security engine, billing, ads, credits, Celery/Redis. See the milestone plan.
 
-## Next: Milestone 5 — scan analytics, usage counters, owner security alerts, notifications
+## Next: Milestone 6 — pricing, plans, feature entitlements, subscriptions, payment providers & webhooks

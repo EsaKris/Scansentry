@@ -21,6 +21,8 @@ class RawContentField(serializers.CharField):
 class AnalyzeRequestSerializer(serializers.Serializer):
     content = RawContentField(trim_whitespace=True)
     assess = serializers.BooleanField(default=False, help_text="Also run the full security assessment (slower)")
+    scanner_type = serializers.ChoiceField(choices=["camera", "upload"], default="camera",
+                                           help_text="How the code was captured (for the owner's analytics)")
 
     def validate_content(self, value):
         if len(value) > settings.SCANNER_MAX_CONTENT_CHARS:

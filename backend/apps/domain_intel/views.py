@@ -1,6 +1,3 @@
-from datetime import timedelta
-
-from django.utils import timezone
 from drf_spectacular.utils import OpenApiTypes, extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -12,11 +9,11 @@ from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 
 from apps.core.authentication import OptionalJWTAuthentication
-from apps.core.entitlements import FeatureLimitReached, get_limit
+from apps.analytics import usage
 
 from . import service
 from .models import DomainAssessment, DomainLookup
-from .normalize import InvalidDomainInput
+from .normalize import InvalidDomainInput, normalize_domain_input
 from .presenters import present
 
 
@@ -33,18 +30,6 @@ class DomainAnalyzeRequestSerializer(serializers.Serializer):
     refresh = serializers.BooleanField(required=False, default=False)
 
 
-def _check_lookup_limits(user):
-    now = timezone.now()
-    day = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    windows = {"domain.lookups.daily_limit": day, "domain.lookups.weekly_limit": day - timedelta(days=day.weekday()),
-               "domain.lookups.monthly_limit": day.replace(day=1)}
-    for key, start in windows.items():
-        limit = get_limit(user, key)
-        if limit is not None and DomainLookup.objects.filter(user=user, created_at__gte=start).count() >= limit:
-            raise FeatureLimitReached(f"You have reached your {key.split('.')[-1].replace('_limit', '')} "
-                                      "limit for domain lookups.")
-
-
 class AnalyzeView(APIView):
     """Public domain checker (rate-limited). Signed-in users also get history and may force a refresh."""
 
@@ -57,9 +42,14 @@ class AnalyzeView(APIView):
     def post(self, request):
         ser = DomainAnalyzeRequestSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
+        d = ser.validated_data
         user = request.user if request.user.is_authenticated else None
-        if user is not None:
-            _check_lookup_limits(user)
+        try:
+            normalize_domain_input(d["value"])      # reject bad input before it uses any allowance
+        except InvalidDomainInput as exc:
+            raise ValidationError({"value": str(exc)})
+        if user is not None:   # atomic, backend-enforced allowance (daily / weekly / monthly)
+            usage.consume(user, "domain.lookups", limits=usage.limits_for(user, "domain.lookups"))
         try:
             assessment, cached = service.assess(
                 ser.validated_data["value"], user=user, refresh=ser.validated_data["refresh"])

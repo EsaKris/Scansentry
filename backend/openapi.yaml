@@ -4,6 +4,187 @@ info:
   version: 1.0.0
   description: Create. Verify. Monitor. Protect.
 paths:
+  /api/v1/activity/:
+    get:
+      operationId: activity_list
+      description: The signed-in user's own audit trail. Read-only; IP addresses are
+        never exposed.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - activity
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedActivityList'
+          description: ''
+  /api/v1/analytics/overview/:
+    get:
+      operationId: analytics_overview_retrieve
+      parameters:
+      - in: query
+        name: days
+        schema:
+          type: integer
+        description: Last N days (default 30)
+      - in: query
+        name: export
+        schema:
+          type: string
+          enum:
+          - csv
+        description: Needs advanced analytics
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: granularity
+        schema:
+          type: string
+          enum:
+          - day
+          - month
+          - week
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: tz
+        schema:
+          type: string
+        description: IANA time zone, e.g. Africa/Lagos
+      tags:
+      - analytics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/analytics/qr-performance/:
+    get:
+      operationId: analytics_qr_performance_retrieve
+      parameters:
+      - in: query
+        name: days
+        schema:
+          type: integer
+        description: Last N days (default 30)
+      - in: query
+        name: export
+        schema:
+          type: string
+          enum:
+          - csv
+        description: Needs advanced analytics
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: granularity
+        schema:
+          type: string
+          enum:
+          - day
+          - month
+          - week
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: tz
+        schema:
+          type: string
+        description: IANA time zone, e.g. Africa/Lagos
+      tags:
+      - analytics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/analytics/scans/:
+    get:
+      operationId: analytics_scans_retrieve
+      parameters:
+      - in: query
+        name: days
+        schema:
+          type: integer
+        description: Last N days (default 30)
+      - in: query
+        name: export
+        schema:
+          type: string
+          enum:
+          - csv
+        description: Needs advanced analytics
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: granularity
+        schema:
+          type: string
+          enum:
+          - day
+          - month
+          - week
+      - in: query
+        name: qr
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: tz
+        schema:
+          type: string
+        description: IANA time zone, e.g. Africa/Lagos
+      tags:
+      - analytics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/v1/auth/login/:
     post:
       operationId: auth_login_create
@@ -461,6 +642,116 @@ paths:
               schema:
                 $ref: '#/components/schemas/Health'
           description: ''
+  /api/v1/notifications/:
+    get:
+      operationId: notifications_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - notifications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationList'
+          description: ''
+  /api/v1/notifications/{id}/read/:
+    post:
+      operationId: notifications_read_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notifications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/notifications/preferences/:
+    get:
+      operationId: notifications_preferences_retrieve
+      tags:
+      - notifications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preference'
+          description: ''
+    patch:
+      operationId: notifications_preferences_partial_update
+      tags:
+      - notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPreference'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPreference'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPreference'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preference'
+          description: ''
+  /api/v1/notifications/read-all/:
+    post:
+      operationId: notifications_read_all_create
+      tags:
+      - notifications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/notifications/unread-count/:
+    get:
+      operationId: notifications_unread_count_retrieve
+      tags:
+      - notifications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/v1/qr/:
     get:
       operationId: qr_list
@@ -672,6 +963,93 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/QRCode'
+          description: ''
+  /api/v1/qr/{id}/activity/:
+    get:
+      operationId: qr_activity_list
+      description: Everything that happened to one QR code (owner only), including
+        staff/system actions.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - qr
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedActivityList'
+          description: ''
+  /api/v1/qr/{id}/analytics/:
+    get:
+      operationId: qr_analytics_retrieve
+      description: GET /qr/{id}/analytics/ - scans for one code (owner only).
+      parameters:
+      - in: query
+        name: days
+        schema:
+          type: integer
+        description: Last N days (default 30)
+      - in: query
+        name: export
+        schema:
+          type: string
+          enum:
+          - csv
+        description: Needs advanced analytics
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: granularity
+        schema:
+          type: string
+          enum:
+          - day
+          - month
+          - week
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: tz
+        schema:
+          type: string
+        description: IANA time zone, e.g. Africa/Lagos
+      tags:
+      - qr
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
           description: ''
   /api/v1/qr/{id}/disable/:
     post:
@@ -1095,6 +1473,38 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/v1/usage/limits/:
+    get:
+      operationId: usage_limits_retrieve
+      description: Current usage per metered feature with limits and exact reset times.
+      tags:
+      - usage
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/usage/overview/:
+    get:
+      operationId: usage_overview_retrieve
+      description: Current usage per metered feature with limits and exact reset times.
+      tags:
+      - usage
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
 components:
   schemas:
     AbuseReportCreate:
@@ -1122,6 +1532,49 @@ components:
       required:
       - category
       - description
+    Activity:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        action:
+          type: string
+          readOnly: true
+        label:
+          type: string
+          readOnly: true
+        object_type:
+          type: string
+          readOnly: true
+        object_id:
+          type: string
+          readOnly: true
+        actor:
+          type: string
+          description: Who did it, without exposing staff identities or other users.
+          readOnly: true
+        before_state:
+          readOnly: true
+          nullable: true
+        after_state:
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - action
+      - actor
+      - after_state
+      - before_state
+      - created_at
+      - id
+      - label
+      - object_id
+      - object_type
     AnalyzeRequest:
       type: object
       properties:
@@ -1131,6 +1584,15 @@ components:
           type: boolean
           default: false
           description: Also run the full security assessment (slower)
+        scanner_type:
+          allOf:
+          - $ref: '#/components/schemas/ScannerTypeEnum'
+          default: camera
+          description: |-
+            How the code was captured (for the owner's analytics)
+
+            * `camera` - camera
+            * `upload` - upload
       required:
       - content
     Campaign:
@@ -1281,6 +1743,22 @@ components:
       - id
       - registration_status
       - submitted_value
+    KindEnum:
+      enum:
+      - security.destination_flagged
+      - qr.disabled
+      - qr.restored
+      - qr.destination_changed
+      - qr.expiring_soon
+      - abuse.report_received
+      type: string
+      description: |-
+        * `security.destination_flagged` - Destination flagged
+        * `qr.disabled` - QR code disabled
+        * `qr.restored` - QR code restored
+        * `qr.destination_changed` - Destination changed
+        * `qr.expiring_soon` - QR code expiring soon
+        * `abuse.report_received` - Abuse report received
     LogoUpload:
       type: object
       properties:
@@ -1296,6 +1774,74 @@ components:
           type: string
       required:
       - refresh
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/KindEnum'
+          readOnly: true
+        severity:
+          allOf:
+          - $ref: '#/components/schemas/SeverityEnum'
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        body:
+          type: string
+          readOnly: true
+        data:
+          readOnly: true
+        read:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        read_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - body
+      - created_at
+      - data
+      - id
+      - kind
+      - read
+      - read_at
+      - severity
+      - title
+    PaginatedActivityList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Activity'
     PaginatedCampaignList:
       type: object
       required:
@@ -1342,6 +1888,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/History'
+    PaginatedNotificationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
     PaginatedQRCodeList:
       type: object
       required:
@@ -1433,6 +2002,19 @@ components:
           type: string
           format: date-time
           readOnly: true
+    PatchedPreference:
+      type: object
+      properties:
+        email_security_alerts:
+          type: boolean
+        email_qr_status:
+          type: boolean
+        email_abuse_reports:
+          type: boolean
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
     PatchedQRCodeUpdate:
       type: object
       properties:
@@ -1491,6 +2073,21 @@ components:
           format: date-time
           readOnly: true
           nullable: true
+    Preference:
+      type: object
+      properties:
+        email_security_alerts:
+          type: boolean
+        email_qr_status:
+          type: boolean
+        email_abuse_reports:
+          type: boolean
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - updated_at
     QRCode:
       type: object
       properties:
@@ -1709,6 +2306,14 @@ components:
       required:
       - email
       - password
+    ScannerTypeEnum:
+      enum:
+      - camera
+      - upload
+      type: string
+      description: |-
+        * `camera` - camera
+        * `upload` - upload
     SecurityAnalyzeRequest:
       type: object
       properties:
@@ -1725,6 +2330,16 @@ components:
           description: Request an AI-worded explanation (signed-in, if enabled)
       required:
       - url
+    SeverityEnum:
+      enum:
+      - info
+      - warning
+      - critical
+      type: string
+      description: |-
+        * `info` - Info
+        * `warning` - Warning
+        * `critical` - Critical
     StatusEnum:
       enum:
       - active
