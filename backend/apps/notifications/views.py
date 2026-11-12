@@ -25,7 +25,7 @@ class NotificationSerializer(serializers.ModelSerializer):
 class PreferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = NotificationPreference
-        fields = ("email_security_alerts", "email_qr_status", "email_abuse_reports", "updated_at")
+        fields = ("email_security_alerts", "email_qr_status", "email_abuse_reports", "email_billing", "updated_at")
         read_only_fields = ("updated_at",)
 
 

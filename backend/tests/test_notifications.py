@@ -199,7 +199,7 @@ def test_list_filter_read_and_isolation(auth_client, other_client, user, other_u
 
 def test_preferences_default_on_and_can_be_changed(auth_client, user):
     assert auth_client.get("/api/v1/notifications/preferences/").data == {
-        "email_security_alerts": True, "email_qr_status": True, "email_abuse_reports": True,
+        "email_security_alerts": True, "email_qr_status": True, "email_abuse_reports": True, "email_billing": True,
         "updated_at": auth_client.get("/api/v1/notifications/preferences/").data["updated_at"]}
     r = auth_client.patch("/api/v1/notifications/preferences/", {"email_qr_status": False, "user": 999}, format="json")
     assert r.status_code == 200 and r.data["email_qr_status"] is False and r.data["email_security_alerts"] is True

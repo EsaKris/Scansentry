@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "apps.security_engine",
     "apps.analytics",
     "apps.notifications",
+    "apps.billing",
 ]
 
 MIDDLEWARE = [
@@ -76,23 +77,16 @@ TEMPLATES = [
 # If you use Supabase's transaction pooler (port 6543), set
 # DB_DISABLE_SERVER_SIDE_CURSORS=true.
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    "default": dj_database_url.config(
+        env="DATABASE_URL",
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=env_int("DB_CONN_MAX_AGE", 60),
+        ssl_require=env_bool("DB_SSL_REQUIRE", False),
+    )
 }
-
-# DATABASES = {
-#     "default": dj_database_url.config(
-#         env="DATABASE_URL",
-#         default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-#         conn_max_age=env_int("DB_CONN_MAX_AGE", 60),
-#         ssl_require=env_bool("DB_SSL_REQUIRE", False),
-#     )
-# }
-# DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = env_bool(
-#     "DB_DISABLE_SERVER_SIDE_CURSORS", False
-# )
+DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = env_bool(
+    "DB_DISABLE_SERVER_SIDE_CURSORS", False
+)
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # --- Auth ---------------------------------------------------------------------
@@ -149,6 +143,7 @@ REST_FRAMEWORK = {
         "domain_user": "100/hour",
         "security_anon": "30/hour",
         "security_user": "200/hour",
+        "billing_checkout": "20/hour",
     },
 }
 
@@ -229,3 +224,10 @@ AI_TIMEOUT = float(env("AI_TIMEOUT", "10"))
 GEO_COUNTRY_HEADER = env("GEO_COUNTRY_HEADER", "")
 GEO_REGION_HEADER = env("GEO_REGION_HEADER", "")
 ANALYTICS_DEDUPE_SECONDS = env_int("ANALYTICS_DEDUPE_SECONDS", 30)
+
+# --- Billing ---------------------------------------------------------------------------------
+# Provider credentials come ONLY from the environment (never the database, never the frontend).
+PAYSTACK_SECRET_KEY = env("PAYSTACK_SECRET_KEY", "")
+FLUTTERWAVE_SECRET_KEY = env("FLUTTERWAVE_SECRET_KEY", "")
+FLUTTERWAVE_WEBHOOK_HASH = env("FLUTTERWAVE_WEBHOOK_HASH", "")   # the "secret hash" you set in the Flutterwave dashboard
+BILLING_RETURN_URL = env("BILLING_RETURN_URL", "")               # default: {FRONTEND_URL}/billing/complete

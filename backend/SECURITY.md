@@ -79,6 +79,18 @@ query strings never stored or sent.
 Mutation-checked: owner scoping, bot exclusion, hash keying and daily rotation, scan de-duplication, usage limits,
 notification de-duplication, email-to-unverified, URL-in-notification and CSV injection.
 
+## Added in Milestone 6: billing
+- Prices are read from the database; the client cannot influence the amount charged
+- Payments are credited only after provider API verification (exact amount + currency); a signed webhook alone is never trusted
+- Idempotent crediting and webhook de-duplication; failed/refused payments are recorded outside the rolled-back transaction
+- Webhook signatures verified in constant time; unconfigured providers refuse everything; payloads stored whitelisted
+- Provider credentials only from the environment; provider calls go through the SSRF-guarded client
+- Paid access is never cut short by cancelling, failed renewals or switching pricing off
+- Role-based administration with specific permissions; every administrative change needs a note and is audited
+Mutation-checked: client-controlled price, unsigned webhooks, crediting without provider verification, double credit,
+amount/currency mismatch, cancel cutting access, checkout while pricing is off, expired overrides, missing admin note,
+missing role check, duplicate webhooks, pricing-off revoking access, renewal amount/plan mismatches, email stored from webhooks.
+
 ## Known gaps (tracked for later milestones)
 - Image decoding uses OpenCV, which misses a few percent of hard photos; the client camera decoder is the primary path
 - The built-in brand list and abuse-heavy-TLD list are starter data; tune them for your market. Look-alike detection will have false negatives and some false positives
@@ -87,6 +99,8 @@ notification de-duplication, email-to-unverified, URL-in-notification and CSV in
 - Analytics aggregates run live over the events table; add pre-aggregated rollups if volumes become large
 - 'Unique' scan figures are daily estimates summed across days, not distinct people
 - Notifications and email are sent synchronously; move to a queue (Celery) at scale
+- Payment adapters are tested against simulated providers only; verify in each provider's sandbox before launch
+- No proration; organisation-level billing is modelled but not enforced
 - Login throttling is per-IP; add per-account lockout/backoff
 - Throttle counters need Redis (not per-process memory) when running multiple workers
 - No device/session management yet

@@ -1,4 +1,4 @@
-# ScanSentry — Backend (Milestones 1–5: Foundation, QR engine, Scanner, Domain intelligence, Security engine, Analytics & notifications)
+# ScanSentry — Backend (Milestones 1–6: …, Analytics & notifications, Pricing & subscriptions)
 
 Django 5.2 + Django REST Framework API shared by the web and Android clients.
 
@@ -23,8 +23,11 @@ Django 5.2 + Django REST Framework API shared by the web and Android clients.
   validation, a block-on-malicious redirect policy, scheduled re-checks
 - **Analytics & notifications (Milestone 5):** privacy-conscious scan analytics, atomic usage counters, owner security
   alerts, in-app notifications with email preferences, activity history, data-retention enforcement
-- 667 automated tests (generated codes are decoded back; the SSRF guard, security guarantees and privacy/isolation rules are
-  tested against a fake internet with real TLS handshakes, and mutation-checked)
+- **Pricing & subscriptions (Milestone 6):** database-driven plans, prices and feature entitlements, a global pricing switch,
+  subscription lifecycle, Paystack and Flutterwave adapters with signed, idempotent, re-verified webhooks, admin overrides,
+  role-based administration
+- 845 automated tests (generated codes are decoded back; the SSRF guard, security, privacy, isolation and billing rules are
+  tested against a fake internet with real TLS handshakes and simulated payment providers, and mutation-checked)
 
 ## Quick start (local, SQLite)
 ```bash
@@ -320,6 +323,72 @@ Configurable via `AppConfiguration`: `retention.scan_events_days` (395), `retent
 `retention.security_checks_days` (90), `retention.domain_assessments_days` (365), `retention.usage_counters_days` (400).
 A value of 0 is clamped to 1 day; unparsable values fall back to the default. Disclose analytics and retention in your privacy policy.
 
+## Pricing, plans, entitlements & subscriptions (Milestone 6)
+**Nothing commercial is hardcoded.** Pricing starts **OFF**; the Free plan has **no limits** until you configure it, so a fresh
+install behaves exactly as before. Everything below is configured in the Django admin without a deployment.
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | /api/v1/plans/ | Public pricing data. Empty while pricing is off. `?currency=NGN` |
+| GET | /api/v1/billing/subscription/ | Effective plan, status, period, `access_until`, `has_access` |
+| GET | /api/v1/billing/entitlements/ | **The** decision web and Android use: every feature with `enabled`, `limit`, `source` |
+| POST | /api/v1/billing/checkout/ | `{"plan","currency","provider"?,"start_trial"?}`. The client never sends a price |
+| POST | /api/v1/billing/checkout/verify/ | `{"reference"}` — call after the provider redirects back |
+| POST | /api/v1/billing/cancel/ · /resume/ | Cancel keeps access to the period end; `{"immediately": true}` ends it now |
+| GET | /api/v1/billing/transactions/ | The user's own payments |
+| POST | /api/v1/billing/webhooks/{provider}/ | Provider callbacks (signature-protected) |
+| GET/POST | /api/v1/admin/billing/… | overview, webhook-events, overrides (+revoke), subscriptions extend / suspend / restore. Role-protected |
+
+**Admin: where to configure what** — *Billing → Plans* (inline prices per currency and plan features), *Feature definitions*
+(the catalogue: defaults, data types), *Core → App configuration* (`pricing_enabled`, `billing.*` keys). Keys:
+| Key | Meaning | Default |
+|---|---|---|
+| `pricing_enabled` | master switch for purchasing | false |
+| `billing.free_plan_slug` | the base tier | `free` |
+| `billing.pricing_disabled_plan_slug` | entitlements for users **without paid access** while pricing is off (e.g. a promotional plan) | the free plan |
+| `billing.enabled_providers` | e.g. `["paystack","flutterwave"]` | `["paystack"]` |
+| `billing.trials_enabled` | allow trials | true |
+| `billing.refund_revokes_access` | a refund ends access | true |
+
+**How entitlements resolve** (lowest to highest priority): feature default → global baseline (`default_entitlements`, kept for
+compatibility) → the user's effective plan → administrative overrides (temporary premium plan, then specific grants/revokes).
+Numeric features: empty limit = unlimited, disabled = 0. Access is **time-based**, so a late job never wrongly grants or removes it:
+active/past-due/grace → until period end + the plan's grace days · cancelled → until the period end · trial → trial end ·
+pending/expired/suspended → none. Cancelling, a failed renewal, or switching pricing off **never** cuts short paid access;
+switching pricing off leaves existing subscribers on their plans and gives everyone else the configured fallback plan.
+
+**Payments (safety rules, all tested)**
+- The amount is calculated from the **database price**; the client chooses a plan and currency only
+- A payment is credited only after the provider's **API confirms success with the exact amount and currency**; a signed webhook alone is never believed
+- Crediting is **idempotent** (verification, webhooks and retries together grant access once); duplicate and replayed webhooks are deduplicated
+- Webhooks: bad/missing signature → 401 and nothing stored; transient trouble → 503 so the provider retries; permanent mismatches → 200 + audited; payloads stored whitelisted (no email, card data)
+- Provider credentials come only from the environment; secrets are never returned or logged
+
+**Providers**
+| Provider | Status | Setup |
+|---|---|---|
+| Paystack | implemented | `PAYSTACK_SECRET_KEY`; webhook URL `/api/v1/billing/webhooks/paystack/`; for **automatic renewals** create a Paystack plan and store its code on the plan as `provider_refs.paystack_plan_code`. Without it, each period is one payment and the user renews by paying again |
+| Flutterwave | implemented | `FLUTTERWAVE_SECRET_KEY` + `FLUTTERWAVE_WEBHOOK_HASH`; one payment per period |
+| Stripe | **not implemented** | listed so the roadmap is visible |
+| Google Play Billing | **not implemented** | Google's policy requires Play Billing for digital subscriptions sold inside the Android app; it needs the Google Play Developer API |
+
+The Paystack and Flutterwave adapters were written from public documentation and tested against simulated providers:
+**test them in each provider's sandbox before going live.**
+
+**Lifecycle jobs — schedule hourly:** `python manage.py process_subscriptions` (trial end → grace → expiry, notifications).
+**Demo data:** `python manage.py seed_example_plans` creates EXAMPLE plans (illustrative values only; pricing stays off).
+
+**Admin roles** (assign in Django admin → Users → permissions). Not every staff member can touch money:
+`billing.manage_pricing` (plans, features, pricing switches) · `billing.manage_subscriptions` (extend, suspend, restore) ·
+`billing.grant_entitlements` (feature grants, promotions, temporary premium access) · `billing.view_payments` (payments, revenue,
+webhook events). Every administrative change needs an **internal note** (≥5 characters), is written to the audit log and to the
+subscription history (`SubscriptionEvent`). Pricing/billing/entitlement settings in *App configuration* are protected by
+`manage_pricing`, and every config change is audited.
+
+**Known limitations (v1):** no proration (switching plans takes effect on payment; remaining time on the old plan is not credited);
+downgrading to Free is "cancel at period end"; a cancelled Paystack-managed subscription needs the provider-side cancellation to succeed
+(the API reports `provider_cancellation: "failed"` and logs it if not); one currency per payment; organisation-level subscriptions are modelled but not yet enforced.
+
 ## Settings modules
 `config.settings.local` (dev), `.test` (pytest, forced by pytest.ini), `.production`
 (HTTPS, HSTS, secure cookies; refuses to start with the default secret key).
@@ -328,4 +397,5 @@ A value of 0 is clamped to 1 day; unparsable values fall back to the default. Di
 Session/device management, email change, QR codes, scanner, domain intelligence,
 security engine, billing, ads, credits, Celery/Redis. See the milestone plan.
 
-## Next: Milestone 6 — pricing, plans, feature entitlements, subscriptions, payment providers & webhooks
+## Next: Milestone 7 — advertising (web + Android), consent, ad eligibility
+## Then: Milestone 8 — rewarded ads and ScanSentry Credits

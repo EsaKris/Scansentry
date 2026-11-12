@@ -92,3 +92,52 @@ def senv(monkeypatch, tmp_path):
 def enable_provider(key, **fields):
     from apps.threat_intel.models import ThreatProvider
     ThreatProvider.objects.filter(key=key).update(enabled=True, **fields)
+
+
+# ---- billing fixtures ----------------------------------------------------------------------------------------------
+@pytest.fixture
+def pricing(db):
+    """Pricing switched ON (the product owner flipping the master switch)."""
+    from apps.core.models import AppConfiguration
+    AppConfiguration.objects.update_or_create(key="pricing_enabled", defaults={"value": True, "is_public": True})
+
+
+@pytest.fixture
+def pay_settings(settings):
+    settings.PAYSTACK_SECRET_KEY = "sk_test_secret"
+    settings.FLUTTERWAVE_SECRET_KEY = "flw_test_secret"
+    settings.FLUTTERWAVE_WEBHOOK_HASH = "fw-hash-123"
+    settings.FRONTEND_URL = "https://app.scansentry.test"
+    return settings
+
+
+def make_plan(slug, name, *, ngn=None, usd=None, interval="month", trial=0, grace=0, order=1, features=None, **kw):
+    from apps.billing.models import FeatureDefinition, Plan, PlanFeature, PlanPrice
+    plan = Plan.objects.create(slug=slug, name=name, billing_interval=interval, trial_days=trial, grace_period_days=grace,
+                               display_order=order, is_free=kw.pop("is_free", ngn is None and usd is None), **kw)
+    if ngn is not None:
+        PlanPrice.objects.create(plan=plan, currency="NGN", amount=ngn)
+    if usd is not None:
+        PlanPrice.objects.create(plan=plan, currency="USD", amount=usd)
+    for key, (enabled, limit) in (features or {}).items():
+        PlanFeature.objects.create(plan=plan, feature=FeatureDefinition.objects.get(key=key), enabled=enabled, limit_value=limit)
+    return plan
+
+
+@pytest.fixture
+def plans(db):
+    from types import SimpleNamespace
+    from apps.billing.models import FeatureDefinition, Plan, PlanFeature
+    free = Plan.objects.get(slug="free")
+    PlanFeature.objects.create(plan=free, feature=FeatureDefinition.objects.get(key="qr.dynamic.active_limit"), enabled=True, limit_value=3)
+    starter = make_plan("starter", "Starter", ngn="2000.00", usd="2.00", order=1, grace=2,
+                        features={"qr.dynamic.active_limit": (True, 10)})
+    pro = make_plan("pro", "Pro", ngn="5000.00", usd="5.00", order=2, trial=7, grace=3,
+                    features={"qr.dynamic.active_limit": (True, 100), "ads.remove": (True, None), "qr.pdf_export": (True, None)})
+    return SimpleNamespace(free=free, starter=starter, pro=pro)
+
+
+@pytest.fixture
+def ps(senv, pay_settings):
+    from tests.billing_sim import PaystackSim
+    return PaystackSim(senv)

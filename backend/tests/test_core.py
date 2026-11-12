@@ -14,10 +14,10 @@ def test_health(api):
 
 
 def test_public_config_exposes_only_public_rows(api):
-    AppConfiguration.objects.create(key="pricing_enabled", value=False, is_public=True)
+    AppConfiguration.objects.create(key="brand_color", value="#0B1F3A", is_public=True)
     AppConfiguration.objects.create(key="internal_note", value="secret", is_public=False)
     r = api.get("/api/v1/config/")
-    assert r.data == {"pricing_enabled": False}
+    assert r.data == {"pricing_enabled": False, "brand_color": "#0B1F3A"}      # pricing starts switched off (seeded)
 
 
 def test_get_config_default_and_wrapped_value():

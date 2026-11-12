@@ -27,6 +27,152 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedActivityList'
           description: ''
+  /api/v1/admin/billing/overrides/:
+    post:
+      operationId: admin_billing_overrides_create
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Override'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/admin/billing/overrides/{id}/revoke/:
+    post:
+      operationId: admin_billing_overrides_revoke_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Note'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/admin/billing/overview/:
+    get:
+      operationId: admin_billing_overview_retrieve
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/admin/billing/subscriptions/extend/:
+    post:
+      operationId: admin_billing_subscriptions_extend_create
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionAction'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/admin/billing/subscriptions/restore/:
+    post:
+      operationId: admin_billing_subscriptions_restore_create
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionAction'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/admin/billing/subscriptions/suspend/:
+    post:
+      operationId: admin_billing_subscriptions_suspend_create
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionAction'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/admin/billing/webhook-events/:
+    get:
+      operationId: admin_billing_webhook_events_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWebhookEventList'
+          description: ''
   /api/v1/analytics/overview/:
     get:
       operationId: analytics_overview_retrieve
@@ -421,6 +567,161 @@ paths:
               schema:
                 $ref: '#/components/schemas/GenericDetail'
           description: ''
+  /api/v1/billing/cancel/:
+    post:
+      operationId: billing_cancel_create
+      tags:
+      - billing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Cancel'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/billing/checkout/:
+    post:
+      operationId: billing_checkout_create
+      description: The client sends WHICH plan; it can never send a price. The amount
+        is read from the database.
+      tags:
+      - billing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Checkout'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/billing/checkout/verify/:
+    post:
+      operationId: billing_checkout_verify_create
+      tags:
+      - billing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Verify'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/billing/entitlements/:
+    get:
+      operationId: billing_entitlements_retrieve
+      description: What this user may do. Web and Android use this same decision;
+        the backend enforces it regardless.
+      tags:
+      - billing
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/billing/resume/:
+    post:
+      operationId: billing_resume_create
+      tags:
+      - billing
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/billing/subscription/:
+    get:
+      operationId: billing_subscription_retrieve
+      tags:
+      - billing
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/billing/transactions/:
+    get:
+      operationId: billing_transactions_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - billing
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTransactionList'
+          description: ''
+  /api/v1/billing/webhooks/{provider}/:
+    post:
+      operationId: billing_webhooks_create
+      description: Provider callbacks. Public by necessity; protected by signature
+        verification.
+      parameters:
+      - in: path
+        name: provider
+        schema:
+          type: string
+        required: true
+      tags:
+      - billing
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/v1/campaigns/:
     get:
       operationId: campaigns_list
@@ -744,6 +1045,23 @@ paths:
       - notifications
       security:
       - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/plans/:
+    get:
+      operationId: plans_retrieve
+      description: Public pricing page data. When pricing is switched off nothing
+        is offered for purchase.
+      tags:
+      - plans
+      security:
+      - {}
       responses:
         '200':
           content:
@@ -1624,6 +1942,12 @@ components:
       - name
       - qr_count
       - updated_at
+    Cancel:
+      type: object
+      properties:
+        immediately:
+          type: boolean
+          default: false
     CategoryEnum:
       enum:
       - suspicious_qr
@@ -1640,6 +1964,25 @@ components:
         * `unexpected_destination` - Unexpected destination change
         * `malicious_sticker` - Malicious QR sticker
         * `other` - Other abuse
+    Checkout:
+      type: object
+      properties:
+        plan:
+          type: string
+          pattern: ^[-a-zA-Z0-9_]+$
+        currency:
+          type: string
+          default: ''
+          maxLength: 3
+        provider:
+          type: string
+          default: ''
+          maxLength: 20
+        start_trial:
+          type: boolean
+          default: false
+      required:
+      - plan
     CodeModeEnum:
       enum:
       - static
@@ -1743,22 +2086,6 @@ components:
       - id
       - registration_status
       - submitted_value
-    KindEnum:
-      enum:
-      - security.destination_flagged
-      - qr.disabled
-      - qr.restored
-      - qr.destination_changed
-      - qr.expiring_soon
-      - abuse.report_received
-      type: string
-      description: |-
-        * `security.destination_flagged` - Destination flagged
-        * `qr.disabled` - QR code disabled
-        * `qr.restored` - QR code restored
-        * `qr.destination_changed` - Destination changed
-        * `qr.expiring_soon` - QR code expiring soon
-        * `abuse.report_received` - Abuse report received
     LogoUpload:
       type: object
       properties:
@@ -1774,6 +2101,12 @@ components:
           type: string
       required:
       - refresh
+    Note:
+      type: object
+      properties:
+        note:
+          type: string
+          default: ''
     Notification:
       type: object
       properties:
@@ -1783,7 +2116,7 @@ components:
           readOnly: true
         kind:
           allOf:
-          - $ref: '#/components/schemas/KindEnum'
+          - $ref: '#/components/schemas/NotificationKindEnum'
           readOnly: true
         severity:
           allOf:
@@ -1819,6 +2152,72 @@ components:
       - read_at
       - severity
       - title
+    NotificationKindEnum:
+      enum:
+      - security.destination_flagged
+      - qr.disabled
+      - qr.restored
+      - qr.destination_changed
+      - qr.expiring_soon
+      - abuse.report_received
+      - billing.subscription_activated
+      - billing.payment_failed
+      - billing.subscription_ending
+      type: string
+      description: |-
+        * `security.destination_flagged` - Destination flagged
+        * `qr.disabled` - QR code disabled
+        * `qr.restored` - QR code restored
+        * `qr.destination_changed` - Destination changed
+        * `qr.expiring_soon` - QR code expiring soon
+        * `abuse.report_received` - Abuse report received
+        * `billing.subscription_activated` - Subscription activated
+        * `billing.payment_failed` - Payment failed
+        * `billing.subscription_ending` - Subscription ending
+    Override:
+      type: object
+      properties:
+        user:
+          type: string
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/OverrideKindEnum'
+          default: feature
+        feature:
+          type: string
+        plan:
+          type: string
+          pattern: ^[-a-zA-Z0-9_]+$
+        enabled:
+          type: boolean
+          default: true
+        limit:
+          type: integer
+          minimum: 0
+          nullable: true
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        days:
+          type: integer
+          maximum: 3650
+          minimum: 1
+        note:
+          type: string
+          default: ''
+      required:
+      - user
+    OverrideKindEnum:
+      enum:
+      - feature
+      - promotion
+      - plan_trial
+      type: string
+      description: |-
+        * `feature` - feature
+        * `promotion` - promotion
+        * `plan_trial` - plan_trial
     PaginatedActivityList:
       type: object
       required:
@@ -1957,6 +2356,52 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/QRDestinationHistory'
+    PaginatedTransactionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+    PaginatedWebhookEventList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebhookEvent'
     PasswordResetConfirm:
       type: object
       properties:
@@ -2010,6 +2455,8 @@ components:
         email_qr_status:
           type: boolean
         email_abuse_reports:
+          type: boolean
+        email_billing:
           type: boolean
         updated_at:
           type: string
@@ -2082,12 +2529,26 @@ components:
           type: boolean
         email_abuse_reports:
           type: boolean
+        email_billing:
+          type: boolean
         updated_at:
           type: string
           format: date-time
           readOnly: true
       required:
       - updated_at
+    ProcessingStatusEnum:
+      enum:
+      - received
+      - processed
+      - ignored
+      - failed
+      type: string
+      description: |-
+        * `received` - Received
+        * `processed` - Processed
+        * `ignored` - Ignored
+        * `failed` - Failed
     QRCode:
       type: object
       properties:
@@ -2111,7 +2572,7 @@ components:
           readOnly: true
         status:
           allOf:
-          - $ref: '#/components/schemas/StatusEnum'
+          - $ref: '#/components/schemas/QRCodeStatusEnum'
           readOnly: true
         effective_status:
           type: string
@@ -2217,6 +2678,16 @@ components:
       - data
       - name
       - qr_type
+    QRCodeStatusEnum:
+      enum:
+      - active
+      - paused
+      - disabled
+      type: string
+      description: |-
+        * `active` - Active
+        * `paused` - Paused
+        * `disabled` - Disabled
     QRDestinationHistory:
       type: object
       properties:
@@ -2340,16 +2811,6 @@ components:
         * `info` - Info
         * `warning` - Warning
         * `critical` - Critical
-    StatusEnum:
-      enum:
-      - active
-      - paused
-      - disabled
-      type: string
-      description: |-
-        * `active` - Active
-        * `paused` - Paused
-        * `disabled` - Disabled
     Style:
       type: object
       properties:
@@ -2368,6 +2829,20 @@ components:
         frame_text:
           type: string
           maxLength: 30
+    SubscriptionAction:
+      type: object
+      properties:
+        user:
+          type: string
+        days:
+          type: integer
+          maximum: 3650
+          minimum: 1
+        note:
+          type: string
+          default: ''
+      required:
+      - user
     TokenObtainPair:
       type: object
       properties:
@@ -2399,6 +2874,75 @@ components:
       required:
       - access
       - refresh
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        plan:
+          type: string
+          readOnly: true
+        provider:
+          type: string
+          readOnly: true
+        provider_reference:
+          type: string
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        currency:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/TransactionStatusEnum'
+          readOnly: true
+        payment_method:
+          type: string
+          readOnly: true
+        failure_reason:
+          type: string
+          readOnly: true
+        paid_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - currency
+      - failure_reason
+      - id
+      - paid_at
+      - payment_method
+      - plan
+      - provider
+      - provider_reference
+      - status
+    TransactionStatusEnum:
+      enum:
+      - pending
+      - success
+      - failed
+      - abandoned
+      - refunded
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `success` - Succeeded
+        * `failed` - Failed
+        * `abandoned` - Abandoned
+        * `refunded` - Refunded
     User:
       type: object
       properties:
@@ -2440,6 +2984,14 @@ components:
       - id
       - is_staff
       - updated_at
+    Verify:
+      type: object
+      properties:
+        reference:
+          type: string
+          maxLength: 120
+      required:
+      - reference
     VerifyEmail:
       type: object
       properties:
@@ -2447,6 +2999,50 @@ components:
           type: string
       required:
       - token
+    WebhookEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        provider:
+          type: string
+          readOnly: true
+        provider_event_id:
+          type: string
+          readOnly: true
+        event_type:
+          type: string
+          readOnly: true
+        processing_status:
+          allOf:
+          - $ref: '#/components/schemas/ProcessingStatusEnum'
+          readOnly: true
+        attempts:
+          type: integer
+          readOnly: true
+        error_message:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        processed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - attempts
+      - created_at
+      - error_message
+      - event_type
+      - id
+      - processed_at
+      - processing_status
+      - provider
+      - provider_event_id
   securitySchemes:
     jwtAuth:
       type: http

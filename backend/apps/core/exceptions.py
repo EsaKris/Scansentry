@@ -9,6 +9,12 @@ def api_exception_handler(exc, context):
         return None
 
     code = getattr(exc, "default_code", "error")
+    try:                                    # prefer the specific code the exception was raised with
+        specific = exc.get_codes()
+        if isinstance(specific, str):
+            code = specific
+    except Exception:
+        pass
     details = None
     if isinstance(exc, ValidationError):
         code = "validation_error"

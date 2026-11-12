@@ -12,6 +12,9 @@ class Notification(UUIDModel):
         DESTINATION_CHANGED = "qr.destination_changed", "Destination changed"
         EXPIRING_SOON = "qr.expiring_soon", "QR code expiring soon"
         ABUSE_REPORT = "abuse.report_received", "Abuse report received"
+        BILLING_ACTIVATED = "billing.subscription_activated", "Subscription activated"
+        BILLING_PAYMENT_FAILED = "billing.payment_failed", "Payment failed"
+        BILLING_ENDING = "billing.subscription_ending", "Subscription ending"
 
     class Severity(models.TextChoices):
         INFO = "info", "Info"
@@ -41,4 +44,5 @@ class NotificationPreference(models.Model):
     email_security_alerts = models.BooleanField(default=True)     # flagged destinations, policy disables
     email_qr_status = models.BooleanField(default=True)           # disabled / restored / expiring soon
     email_abuse_reports = models.BooleanField(default=True)
+    email_billing = models.BooleanField(default=True)             # payments, renewals, failed payments
     updated_at = models.DateTimeField(auto_now=True)

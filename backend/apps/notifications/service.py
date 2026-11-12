@@ -17,7 +17,8 @@ S = Notification.Severity
 # which preference governs email for each kind
 EMAIL_PREF = {K.DESTINATION_FLAGGED: "email_security_alerts", K.QR_DISABLED: "email_qr_status",
               K.QR_RESTORED: "email_qr_status", K.EXPIRING_SOON: "email_qr_status",
-              K.ABUSE_REPORT: "email_abuse_reports"}
+              K.ABUSE_REPORT: "email_abuse_reports", K.BILLING_ACTIVATED: "email_billing",
+              K.BILLING_PAYMENT_FAILED: "email_billing", K.BILLING_ENDING: "email_billing"}
 
 
 def host_of(url: str) -> str:
@@ -124,3 +125,7 @@ def send_expiry_reminders(days: int = 3) -> int:
                       dedupe_key=f"expiring:{qr.id}:{qr.expires_at:%Y%m%d}")
         count += bool(made)
     return count
+
+
+def alert_billing(user, kind, *, title: str, body: str, severity=S.INFO, data=None, dedupe_key: str = ""):
+    return notify(user, kind, title=title, body=body, severity=severity, data=data or {}, dedupe_key=dedupe_key)
