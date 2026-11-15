@@ -27,6 +27,51 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedActivityList'
           description: ''
+  /api/v1/admin/advertising/overview/:
+    get:
+      operationId: admin_advertising_overview_retrieve
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/admin/advertising/simulate/:
+    get:
+      operationId: admin_advertising_simulate_retrieve
+      description: 'Support tool: what would this user see on this screen? Uses the
+        real decision engine.'
+      parameters:
+      - in: query
+        name: platform
+        schema:
+          type: string
+      - in: query
+        name: surface
+        schema:
+          type: string
+      - in: query
+        name: user
+        schema:
+          type: string
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/v1/admin/billing/overrides/:
     post:
       operationId: admin_billing_overrides_create
@@ -172,6 +217,96 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaginatedWebhookEventList'
+          description: ''
+  /api/v1/advertising/config/:
+    get:
+      operationId: advertising_config_retrieve
+      description: Safe, public advertising settings for the clients. Contains no
+        secrets and no per-user data.
+      tags:
+      - advertising
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/advertising/eligible-placements/:
+    get:
+      operationId: advertising_eligible_placements_retrieve
+      description: The single ad-eligibility decision for a user, platform and screen.
+      parameters:
+      - in: query
+        name: platform
+        schema:
+          type: string
+          enum:
+          - android
+          - web
+        required: true
+      - in: query
+        name: surface
+        schema:
+          type: string
+        description: The screen asking, e.g. dashboard
+      tags:
+      - advertising
+      security:
+      - jwtAuthOptional: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/advertising/preferences/:
+    get:
+      operationId: advertising_preferences_retrieve
+      description: The user's own personalisation choice (null = none made). Provider
+        consent is collected by the client's consent platform.
+      tags:
+      - advertising
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdPreference'
+          description: ''
+    patch:
+      operationId: advertising_preferences_partial_update
+      description: The user's own personalisation choice (null = none made). Provider
+        consent is collected by the client's consent platform.
+      tags:
+      - advertising
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAdPreference'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAdPreference'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAdPreference'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdPreference'
           description: ''
   /api/v1/analytics/overview/:
     get:
@@ -1893,6 +2028,19 @@ components:
       - label
       - object_id
       - object_type
+    AdPreference:
+      type: object
+      properties:
+        personalized_ads:
+          type: boolean
+          nullable: true
+          description: null = no choice made
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - updated_at
     AnalyzeRequest:
       type: object
       properties:
@@ -2424,6 +2572,17 @@ components:
           format: email
       required:
       - email
+    PatchedAdPreference:
+      type: object
+      properties:
+        personalized_ads:
+          type: boolean
+          nullable: true
+          description: null = no choice made
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
     PatchedCampaign:
       type: object
       properties:

@@ -1,4 +1,4 @@
-# ScanSentry — Backend (Milestones 1–6: …, Analytics & notifications, Pricing & subscriptions)
+# ScanSentry — Backend (Milestones 1–7: …, Pricing & subscriptions, Advertising)
 
 Django 5.2 + Django REST Framework API shared by the web and Android clients.
 
@@ -26,8 +26,10 @@ Django 5.2 + Django REST Framework API shared by the web and Android clients.
 - **Pricing & subscriptions (Milestone 6):** database-driven plans, prices and feature entitlements, a global pricing switch,
   subscription lifecycle, Paystack and Flutterwave adapters with signed, idempotent, re-verified webhooks, admin overrides,
   role-based administration
-- 845 automated tests (generated codes are decoded back; the SSRF guard, security, privacy, isolation and billing rules are
-  tested against a fake internet with real TLS handshakes and simulated payment providers, and mutation-checked)
+- **Advertising (Milestone 7):** one server-side ad-eligibility decision for web and Android, admin-controlled switches and
+  placements, ad-free plans, trial rules, consent hints, and ad-free security screens enforced by the backend
+- 923 automated tests (generated codes are decoded back; the SSRF guard, security, privacy, isolation, billing and advertising
+  rules are tested against a fake internet with real TLS handshakes and simulated payment providers, and mutation-checked)
 
 ## Quick start (local, SQLite)
 ```bash
@@ -389,6 +391,67 @@ subscription history (`SubscriptionEvent`). Pricing/billing/entitlement settings
 downgrading to Free is "cancel at period end"; a cancelled Paystack-managed subscription needs the provider-side cancellation to succeed
 (the API reports `provider_cancellation: "failed"` and logs it if not); one currency per payment; organisation-level subscriptions are modelled but not yet enforced.
 
+## Advertising (Milestone 7)
+Advertising is a **configurable revenue stream, not part of the UI code**. The backend makes the *only* eligibility decision, so
+web and Android cannot disagree, and ad-free plans and ad-free screens are enforced on the server.
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | /api/v1/advertising/config/ | Public, secret-free settings: switches, enabled providers' **public** ids, label, forbidden screens |
+| GET | /api/v1/advertising/eligible-placements/?platform=web\|android&surface=dashboard | **The decision.** Anonymous or signed-in. Returns `eligible`, `reason`, `user_category`, `placements[]` |
+| GET/PATCH | /api/v1/advertising/preferences/ | `{"personalized_ads": true\|false\|null}` (can only make ads *less* personalised) |
+| GET | /api/v1/admin/advertising/overview/ · /simulate/?user=&platform=&surface= | Admins with `manage_ads`: warnings, misconfigurations, provider-reported figures; "what would this user see?" |
+
+**Reasons** (`reason`): `ok` · `ads_disabled` · `platform_disabled` · `category_disabled` · `ad_free_entitlement` · `surface_restricted` ·
+`unknown_surface` · `unknown_platform` · `no_placements`.
+
+**Switches** (Core → App configuration; no deployment needed): `ads_enabled` (**master, OFF by default**), `ads_web_enabled`,
+`ads_android_enabled`, `ads_enabled_for_free_users` / `_trial_users` / `_paid_users` / `_enterprise_users`, `ads_non_personalized_default`,
+`ads_test_mode`, `ads_frequency_limits`, `ads_remove_with_premium`, `ads_enterprise_plan_slugs`. Recommended defaults are seeded
+(free + trial on, paid + enterprise off). Ad networks live under *Advertising → Ad providers* and placements under *Ad placements*
+(8 placements are pre-created **disabled with no ad unit ids**; fill in your real ids, then enable). Needs the `advertising.manage_ads`
+permission, separate from the billing roles; changes are audited.
+
+**Who sees ads.** Categories are `anonymous`, `free`, `trial`, `paid`, `enterprise`. A user sees ads only if the master, platform and
+category switches allow it **and** their effective `ads.remove` entitlement does not remove them:
+- **trials never lose ads just because the trial plan includes `ads.remove`** (trials unlock premium features but may keep showing ads
+  when `ads_enabled_for_trial_users` is on). Only an explicit, individual admin grant of `ads.remove` removes ads for a trial user.
+  Temporary premium access granted by an admin counts as a trial
+- plan-derived ad removal follows `ads_remove_with_premium`; explicit admin grants always count
+- anonymous visitors see only placements marked `allow_anonymous`
+- per-placement `eligible_plan_rules`: `{"categories": [...], "include_plans": [...], "exclude_plans": [...]}`
+
+**Screens that never show ads — enforced by the backend, not configurable.** `scanner`, `scan_result`, `verification`, `security_warning`,
+`threat_result`, `security_confirmation`, `qr_generation`, `qr_download`, `redirect`, `emergency_alert`, `domain_report`. A request for any
+of them returns `eligible: false, reason: surface_restricted` on both platforms, no setting can override it, a placement on such a screen
+**cannot be saved**, and even a row forced into the database is never served. Only `dashboard`, `qr_library`, `analytics`, `resources`
+and `account` can carry ads. No security, scanner or domain API response ever contains ad data.
+
+**Test vs production.** In `ads_test_mode` (default ON) the API returns Google's *official test ad units* (AdMob banner/native, Ad Manager
+sample path; AdSense has none, so `adtest: true` tells the client to add `data-adtest="on"`) and **never** your stored production ids. In
+production mode only real ids are served: a placement with no id, or with a Google test id, is skipped and flagged in the admin overview.
+Google test ids cannot be stored as production ids. Ad unit ids are public client-side values; no provider secret is stored anywhere.
+
+**Reporting.** Provider-reported figures (`AdProviderReport`: requests, impressions, fill rate, estimated revenue) can be entered or
+imported by an administrator. The overview shows them exactly as reported, or says reporting is **unavailable**. ScanSentry never
+estimates or invents impression or revenue numbers, and it does not track ad impressions or clicks itself. Live provider reporting
+APIs (AdMob / Ad Manager) are **not** integrated yet.
+
+**Consent and personalisation.** Consent itself is collected by the provider's consent platform on the client: **Google UMP on Android**,
+a certified CMP on web. The API returns `request_non_personalized_ads` (privacy-first default: true) and the user's own choice can only
+reduce personalisation. Clients must also request non-personalised ads whenever consent is missing or refused. Disclose advertising data
+processing in your privacy policy and in Google Play's Data safety form.
+
+### Client integration (web and React Native)
+1. On each screen, call `GET /advertising/eligible-placements/?platform=…&surface=<screen>` (send the bearer token when signed in).
+   **Never decide eligibility on the client.** If `eligible` is false, render nothing and reserve no space
+2. For each placement: load the provider SDK with `ad_unit_id` and `provider_config`, honour `frequency`, and always show the `label`
+   ("Advertisement") visibly. Never style an ad like a ScanSentry warning or recommendation; reserve its height to avoid layout shift
+3. Ad loading failures must never block or delay a screen: show nothing and carry on
+4. Android: the Google Mobile Ads SDK **does not run in Expo Go**; use an Expo **development build** (config plugin) with the test app id
+   from `provider_config.app_id`. Run the UMP consent flow before requesting ads
+5. Never place ads during scanning, results, verification, warnings, QR creation/download or redirects, even if the API were asked
+
 ## Settings modules
 `config.settings.local` (dev), `.test` (pytest, forced by pytest.ini), `.production`
 (HTTPS, HSTS, secure cookies; refuses to start with the default secret key).
@@ -397,5 +460,4 @@ downgrading to Free is "cancel at period end"; a cancelled Paystack-managed subs
 Session/device management, email change, QR codes, scanner, domain intelligence,
 security engine, billing, ads, credits, Celery/Redis. See the milestone plan.
 
-## Next: Milestone 7 — advertising (web + Android), consent, ad eligibility
-## Then: Milestone 8 — rewarded ads and ScanSentry Credits
+## Next: Milestone 8 — rewarded ads and ScanSentry Credits (wallet, ledger, server-verified rewards, reward abuse prevention)

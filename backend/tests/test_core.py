@@ -22,7 +22,7 @@ def test_public_config_exposes_only_public_rows(api):
 
 def test_get_config_default_and_wrapped_value():
     assert get_config("missing", 5) == 5
-    AppConfiguration.objects.create(key="ads_enabled", value={"value": True})
+    AppConfiguration.objects.update_or_create(key="ads_enabled", defaults={"value": {"value": True}})   # seeded (off) by default
     assert get_config("ads_enabled") is True
 
 

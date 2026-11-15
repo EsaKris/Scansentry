@@ -91,6 +91,17 @@ Mutation-checked: client-controlled price, unsigned webhooks, crediting without 
 amount/currency mismatch, cancel cutting access, checkout while pricing is off, expired overrides, missing admin note,
 missing role check, duplicate webhooks, pricing-off revoking access, renewal amount/plan mismatches, email stored from webhooks.
 
+## Added in Milestone 7: advertising
+- One server-side eligibility decision; web and Android cannot disagree and clients cannot override it
+- Security-critical screens are refused by the backend regardless of any setting; placements on them cannot be saved, and a forced row is still never served
+- Ad-free plans are enforced on the server; trial and explicit-grant rules are tested
+- Test ad units only in test mode; Google test ids can never be stored or served in production; stored production ids never leak in test mode
+- No provider secret is stored; only whitelisted public identifiers are exposed; advertising settings need a dedicated permission and are audited
+- Reporting figures are provider-reported or reported unavailable, never invented
+Mutation-checked: forbidden-screen refusal (and its defence in depth), ad-free enforcement, trial rule, master/platform/category
+switches, test-id handling in both modes, placement validation, public-config secret filtering, privacy-first personalisation default,
+rewarded format exclusion, ad-admin role check, disabled-provider and anonymous-visitor handling.
+
 ## Known gaps (tracked for later milestones)
 - Image decoding uses OpenCV, which misses a few percent of hard photos; the client camera decoder is the primary path
 - The built-in brand list and abuse-heavy-TLD list are starter data; tune them for your market. Look-alike detection will have false negatives and some false positives
@@ -101,6 +112,7 @@ missing role check, duplicate webhooks, pricing-off revoking access, renewal amo
 - Notifications and email are sent synchronously; move to a queue (Celery) at scale
 - Payment adapters are tested against simulated providers only; verify in each provider's sandbox before launch
 - No proration; organisation-level billing is modelled but not enforced
+- Consent collection (Google UMP / web CMP) and ad rendering are client-side; verify them in the apps. Provider reporting APIs are not integrated
 - Login throttling is per-IP; add per-account lockout/backoff
 - Throttle counters need Redis (not per-process memory) when running multiple workers
 - No device/session management yet
