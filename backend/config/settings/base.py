@@ -186,7 +186,7 @@ LOGGING = {
 
 # --- QR codes -------------------------------------------------------------------
 # Base URL of the public redirect/verification domain used inside dynamic QR codes.
-REDIRECT_BASE_URL = env("REDIRECT_BASE_URL", "http://localhost:8000").rstrip("/")
+REDIRECT_BASE_URL = env("REDIRECT_BASE_URL", "https://scansentry.onrender.com").rstrip("/")
 QR_MIN_CONTRAST_RATIO = float(env("QR_MIN_CONTRAST_RATIO", "4.0"))
 QR_MAX_LOGO_RATIO = float(env("QR_MAX_LOGO_RATIO", "0.2"))
 QR_MAX_LOGO_BYTES = env_int("QR_MAX_LOGO_BYTES", 1_000_000)
