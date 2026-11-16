@@ -9,7 +9,8 @@ from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 
 from apps.core.authentication import OptionalJWTAuthentication
-from apps.analytics import usage
+from apps.credits import limits as credit_limits
+from apps.credits import rewarded as credit_rewarded
 
 from . import service
 from .models import DomainAssessment, DomainLookup
@@ -28,6 +29,10 @@ class DomainUserThrottle(UserRateThrottle):
 class DomainAnalyzeRequestSerializer(serializers.Serializer):
     value = serializers.CharField(max_length=2048)
     refresh = serializers.BooleanField(required=False, default=False)
+    use_credits = serializers.BooleanField(required=False, default=False,
+                                           help_text="Only when the allowance is used up: spend ScanSentry Credits for this one lookup")
+    platform = serializers.ChoiceField(choices=["web", "android"], required=False,
+                                       help_text="Lets a 'limit reached' answer include the right rewarded-ad offers")
 
 
 class AnalyzeView(APIView):
@@ -48,14 +53,25 @@ class AnalyzeView(APIView):
             normalize_domain_input(d["value"])      # reject bad input before it uses any allowance
         except InvalidDomainInput as exc:
             raise ValidationError({"value": str(exc)})
-        if user is not None:   # atomic, backend-enforced allowance (daily / weekly / monthly)
-            usage.consume(user, "domain.lookups", limits=usage.limits_for(user, "domain.lookups"))
+        charge = None
+        if user is not None:   # atomic, backend-enforced allowance (daily / weekly / monthly); credits only on explicit request
+            charge = credit_limits.consume_or_credits(user, "domain.lookups", use_credits=d["use_credits"], platform=d.get("platform"),
+                                                      country=credit_rewarded.country_of(request))
         try:
             assessment, cached = service.assess(
                 ser.validated_data["value"], user=user, refresh=ser.validated_data["refresh"])
         except InvalidDomainInput as exc:
+            if charge:
+                charge.refund()
             raise ValidationError({"value": str(exc)})
-        resp = Response(present(assessment, cached=cached))
+        except Exception:
+            if charge:
+                charge.refund()                       # credits paid for a lookup that failed are given back
+            raise
+        body = present(assessment, cached=cached)
+        if charge is not None and charge.kind == "credits":
+            body["paid_with_credits"] = -charge.entry.amount
+        resp = Response(body)
         resp["Cache-Control"] = "no-store"
         return resp
 

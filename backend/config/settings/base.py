@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "apps.notifications",
     "apps.billing",
     "apps.advertising",
+    "apps.credits",
 ]
 
 MIDDLEWARE = [
@@ -145,6 +146,8 @@ REST_FRAMEWORK = {
         "security_anon": "30/hour",
         "security_user": "200/hour",
         "billing_checkout": "20/hour",
+        "reward_session": "30/hour",
+        "reward_callback": "1200/min",
     },
 }
 

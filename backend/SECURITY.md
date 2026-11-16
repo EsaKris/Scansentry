@@ -102,7 +102,31 @@ Mutation-checked: forbidden-screen refusal (and its defence in depth), ad-free e
 switches, test-id handling in both modes, placement validation, public-config secret filtering, privacy-first personalisation default,
 rewarded format exclusion, ad-admin role check, disabled-provider and anonymous-visitor handling.
 
+## Added in Milestone 8: rewarded ads and credits
+- Credits are granted in exactly one function (`settle`), reachable only from a signature-verified provider callback or the explicitly enabled web attestation.
+  Requesting, loading, opening, clicking or closing an ad never reaches it; client progress events cannot grant
+- AdMob SSV: ECDSA/SHA-256 over the raw query string, keys from Google's key server through the SSRF guard, cached ≤6 h with a bounded refresh; nothing may follow
+  `signature` except `key_id`, repeated parameters are refused (parameter pollution), a down key server answers 503 and never "verified"
+- Session, user, ad unit, reward timing, transaction id and replay are all checked; the reward amount is our snapshot, never the provider's number; sessions are single-use,
+  short-lived and unguessable (256-bit); an invalid signature cannot alter any session; Google test ads cannot pay in production
+- Caps, cooldown, switches and the earning entitlements are enforced when the session is created AND again when credits are granted
+- The ledger is append-only with a database sign constraint; debits are conditional atomic updates (no overdraw / double spend even without row locks); every movement
+  is idempotent; wallet, ledger and lots are reconciled; admin adjustments need a reason, a permission and are audited
+- Credits are never spent without an explicit `use_credits` request, only on admin-priced, plan-enabled, metered features, and are refunded if the use fails
+- Essential security access (decode, verify, warnings) has no credit or ad dependency, tested with a zero balance; security screens remain ad-free
+- Callback records hold no IP address and no signature; sessions' tokens are hidden from the admin and from every read endpoint after creation
+Mutation-checked: signature verification, overdraw guard, idempotency (both layers), duplicate/replayed callbacks, expired and early reward moments, client events granting,
+unsigned appended parameters, silent spending, spending expired credits, web attestation switch and post-expiry completion, test ads in production, user mismatch,
+grant-time cap, transaction-id replay, repeatable refunds, rewarded-provider capability, ledger edits, admin permission, key-server outage handling.
+
 ## Known gaps (tracked for later milestones)
+- **Web rewarded ads cannot be server-verified** (Google: Ad Manager SSV is app-only). They are off by default; if enabled they are client-attested and farmable by a determined user
+- The SSV adapter was written from Google's public documentation and tested against a simulated signer: verify it with AdMob's SSV test tool and a real device before enabling rewards
+- Only `domain.lookups` is credit-funded so far; other metered features (AI explanations, report export, `qr.scans.monthly_limit`) still need counters before they can be priced in credits
+- Reward-abuse detection is a threshold flag plus `earning_suspended`; there is no automatic suspension. No device attestation (Play Integrity) is used
+- Callback records are not rate-limited per source beyond the global throttle (Google's IPs are shared); the throttle counters need Redis with several workers
+- `select_for_update` is a no-op on SQLite; on PostgreSQL it serialises per-user credit changes. Concurrency safety does not rely on it (conditional updates, unique keys) but was
+  not stress-tested under real parallel load
 - Image decoding uses OpenCV, which misses a few percent of hard photos; the client camera decoder is the primary path
 - The built-in brand list and abuse-heavy-TLD list are starter data; tune them for your market. Look-alike detection will have false negatives and some false positives
 - Redirect-policy blocks rely on a cached finding per destination URL; run `recheck_destinations` on a schedule

@@ -1,4 +1,4 @@
-# ScanSentry — Backend (Milestones 1–7: …, Pricing & subscriptions, Advertising)
+# ScanSentry — Backend (Milestones 1–8: …, Pricing & subscriptions, Advertising, Rewarded ads & Credits)
 
 Django 5.2 + Django REST Framework API shared by the web and Android clients.
 
@@ -28,7 +28,10 @@ Django 5.2 + Django REST Framework API shared by the web and Android clients.
   role-based administration
 - **Advertising (Milestone 7):** one server-side ad-eligibility decision for web and Android, admin-controlled switches and
   placements, ad-free plans, trial rules, consent hints, and ad-free security screens enforced by the backend
-- 923 automated tests (generated codes are decoded back; the SSRF guard, security, privacy, isolation, billing and advertising
+- **Rewarded ads & ScanSentry Credits (Milestone 8):** append-only credit ledger and wallet, admin-configured rewarded offers, single-use
+  server-created ad sessions, AdMob server-side-verified rewards (ECDSA), caps/cooldowns, credit-funded extra usage, limit-screen data,
+  audited admin adjustments and reporting
+- 1094 automated tests (generated codes are decoded back; the SSRF guard, security, privacy, isolation, billing and advertising
   rules are tested against a fake internet with real TLS handshakes and simulated payment providers, and mutation-checked)
 
 ## Quick start (local, SQLite)
@@ -452,12 +455,76 @@ processing in your privacy policy and in Google Play's Data safety form.
    from `provider_config.app_id`. Run the UMP consent flow before requesting ads
 5. Never place ads during scanning, results, verification, warnings, QR creation/download or redirects, even if the API were asked
 
+## Rewarded ads & ScanSentry Credits (Milestone 8)
+**Credits are internal usage units: no cash value, not transferable, not withdrawable, cannot buy subscriptions.** Nothing earns or
+spends credits until an administrator configures it: every switch is OFF and the credit price table is empty by default.
+Scanning, decoding, public verification and security warnings **never** need credits or an ad (tested, including with a zero balance).
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | /api/v1/credits/balance/ | `available_balance`, lifetime totals, expiring credits, earning limits (day/week/month), `earning_suspended` |
+| GET | /api/v1/credits/history/ | Own ledger, paginated, `?type=`. Read-only |
+| GET | /api/v1/credits/limit-screen/?feature=domain.lookups&platform=android | Everything for a "limit reached" screen (below) |
+| GET | /api/v1/credits/rewarded-offers/?platform=web\|android | Offers with `available`/`reason`, exact reward, claims left, cooldown, terms |
+| POST | /api/v1/credits/rewarded-sessions/ | `{"offer","platform"}` → short-lived single-use session + client instructions. The user must opt in |
+| GET | /api/v1/credits/rewarded-sessions/{id}/ | Poll after the ad: status, `credits_granted`, balance |
+| POST | /api/v1/credits/rewarded-sessions/{id}/events/ | Client progress: `ad_available`, `started`, `closed_early`, `cancelled`, `no_fill`, `load_failed`, `timeout`, `client_reward_reported`. **Never grants anything** |
+| POST | /api/v1/credits/rewarded-sessions/{id}/complete/ | **Web only, disabled by default** (see "Web rewards") |
+| GET/POST | /api/v1/advertising/reward-callbacks/{provider}/ | Provider callback. Today `admob` (AdMob server-side verification, a GET). Signature-protected, no login |
+| GET | /api/v1/admin/credits/overview/ | `view_credit_reports`: issued / spent / expired / outstanding, reconciliation, sessions and callbacks by outcome, unusual patterns, warnings |
+| POST | /api/v1/admin/credits/adjust/ | `manage_credits`: `{"user","kind":"grant\|promotional\|reversal","amount","reason","expires_in_days?","request_id?"}`. Reason required, audited, idempotent by `request_id` |
+
+**Switches** (Core → App configuration; need `advertising.manage_ads`; no deployment): `rewarded_ads_enabled` (master), `rewarded_ads_web_enabled`,
+`rewarded_ads_android_enabled`, `rewarded_ads_test_mode` (default ON), `rewarded_web_client_attested_enabled` (default OFF),
+`rewarded_session_ttl_seconds` (900), `rewarded_ssv_max_delay_seconds` (86400), `rewarded_attested_min_watch_seconds` (5),
+`rewarded_abuse_daily_threshold` (10), `credits.feature_costs` (`{"domain.lookups": 2}`; empty = nothing is credit-funded).
+**Offers** (Credits → Rewarded ad offers; changes audited): reward amount, platform, provider, eligible plans / account categories / features,
+daily / weekly / monthly claim caps, cooldown, credit expiry (empty = never), schedule, production ad unit, optional country allow/block lists
+(need `GEO_COUNTRY_HEADER`; an unknown country with a country rule is *not* eligible). **Credits earned per day/week/month** are capped by the
+existing `credits.earn.*_limit` entitlements, **per-plan credit prices** by `credits.spend.feature_cost` (its plan-feature `configuration`,
+e.g. `{"domain.lookups": 1}`; it wins over the global table) and who may earn at all by `ads.rewarded_credits`.
+AdSense, banner and native providers are rejected as offer providers: ordinary ads are never a reward mechanism.
+
+**How a reward is granted (Android, AdMob SSV).** 1) `POST rewarded-sessions/` (backend checks switches, plan, caps, cooldown; returns a token and the
+`ssv` values). 2) The app sets `userIdentifier = ssv.user_id` and `customData = ssv.custom_data` on the rewarded ad, loads the unit from
+`client.ad_unit_id`, and reports `ad_available` / `started`. 3) The user completes the ad. 4) Google calls `/advertising/reward-callbacks/admob/`;
+the backend verifies the ECDSA signature over the raw query string with Google's rotating public keys (fetched through the SSRF guard, cached 6 h),
+then checks the session, user, ad unit, timing, replay, caps and cooldown again, and writes **exactly one** ledger entry. 5) The app polls the session
+until `rewarded`. Credits come from *our* offer (snapshotted at session creation), never from Google's `reward_amount`.
+Callback rules: forged / tampered / unknown key → 403 and nothing changes; malformed or extra unsigned parameters → 400; key server down → 503 (Google retries);
+every handled outcome incl. refusals → 200. Delayed delivery is fine: the user's reward moment must fall inside the session's life, and the callback may arrive up
+to `rewarded_ssv_max_delay_seconds` later. Closing an ad early does not block a genuine completion (the provider's definition is authoritative).
+
+**Web rewards: decision needed.** Google's Ad Manager documentation states that server-side verification *"is an app only feature and it is unavailable for web use"*.
+A web completion can therefore only be **client-attested**, i.e. a determined user could fake it. So web offers are `verification_unavailable` until an
+administrator turns on `rewarded_web_client_attested_enabled`; even then it needs your own started session, a plausible watch time, an unexpired session, caps and
+cooldown, is labelled `client_attested` in the ledger/admin, and the admin overview shows a warning. Recommended: keep it off for launch (credits from Android only),
+or keep earning caps small if you enable it. In test mode Ad Manager web needs `configuration.test_ad_unit_identifier` on the offer (paste a sample unit from Google's docs).
+
+**Limit screen and credit-funded use.** When a metered allowance (today: domain lookups) is exhausted, the `403 limit_reached` error's `details` (and
+`GET /credits/limit-screen/`) contain: per-window `used` / `limit` / `remaining` / exact `resets_at` (UTC), `blocking` windows, the latest reset, `credits`
+(balance, cost per use, `can_cover`, reason), `rewarded_ad` (eligible offers), `upgrade` (only when pricing is on) and `wait`. Credits are **never spent silently**:
+the client resends the request with `"use_credits": true` (domain analyze also accepts `"platform"`). Only features priced in credits can be funded, never ones
+switched off for the plan; a lookup that then fails refunds the credits (once).
+
+**Ledger rules.** Entries are append-only (`REWARDED_AD_EARNED`, `PROMOTIONAL_CREDIT`, `ADMIN_GRANT`, `USAGE_REFUND` positive; `FEATURE_USAGE`, `CREDIT_EXPIRY`,
+`ADMIN_REVERSAL` negative; sign enforced by a database constraint). Spending is a conditional atomic update, so it cannot overdraw or double-spend; keys make every
+movement idempotent; the soonest-expiring credits are spent first and expired credits are never spendable (balance reads and spends expire them on demand).
+`wallet == sum(ledger) == sum(unspent lots)` is checked in the admin overview. Jobs — schedule hourly: `python manage.py process_credits`.
+Demo data: `python manage.py seed_example_rewards` (a DISABLED example offer and a sample credit price). Retention (`purge_old_data`): callback records 30 days,
+unrewarded sessions 90 days; rewarded sessions and the ledger are kept. Admin roles: `credits.manage_credits` (adjustments, earning suspension),
+`credits.view_credit_reports` (overview, read-only records); offers and switches need `advertising.manage_ads`.
+
+**Live setup you still need:** AdMob app + a rewarded ad unit with *server-side verification enabled* and the callback URL
+`https://<your-api>/api/v1/advertising/reward-callbacks/admob/` (AdMob has a test tool for it); put the real unit on the offer, enable the `admob` provider,
+switch `rewarded_ads_test_mode` off. The callback URL must be reachable by Google (HTTPS). Android SSV also needs UMP consent in the app before requests.
+
 ## Settings modules
 `config.settings.local` (dev), `.test` (pytest, forced by pytest.ini), `.production`
 (HTTPS, HSTS, secure cookies; refuses to start with the default secret key).
 
 ## Deliberately not built yet
 Session/device management, email change, QR codes, scanner, domain intelligence,
-security engine, billing, ads, credits, Celery/Redis. See the milestone plan.
+Celery/Redis, Google Play Billing / Stripe, domain-report export. See SECURITY.md known gaps.
 
-## Next: Milestone 8 — rewarded ads and ScanSentry Credits (wallet, ledger, server-verified rewards, reward abuse prevention)
+## Next: Milestone 9 — quality, deployment, documentation, demo

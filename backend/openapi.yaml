@@ -218,6 +218,44 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedWebhookEventList'
           description: ''
+  /api/v1/admin/credits/adjust/:
+    post:
+      operationId: admin_credits_adjust_create
+      description: Audited administrator grant / promotional credit / reversal. Needs
+        a reason; never edits history, it appends to the ledger.
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Adjust'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/admin/credits/overview/:
+    get:
+      operationId: admin_credits_overview_retrieve
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/v1/advertising/config/:
     get:
       operationId: advertising_config_retrieve
@@ -307,6 +345,55 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdPreference'
+          description: ''
+  /api/v1/advertising/reward-callbacks/{provider}/:
+    get:
+      operationId: advertising_reward_callbacks_retrieve
+      description: |-
+        Provider reward callbacks. Authenticity is the provider's signature, not a login: forged, tampered, expired, duplicated and
+        replayed callbacks never issue credits. AdMob sends a GET; POST is accepted for providers that post. 200 = handled (do not retry),
+        403 = bad signature, 400 = malformed, 503 = verification keys unavailable (retry).
+      parameters:
+      - in: path
+        name: provider
+        schema:
+          type: string
+        required: true
+      tags:
+      - advertising
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: advertising_reward_callbacks_create
+      description: |-
+        Provider reward callbacks. Authenticity is the provider's signature, not a login: forged, tampered, expired, duplicated and
+        replayed callbacks never issue credits. AdMob sends a GET; POST is accepted for providers that post. 200 = handled (do not retry),
+        403 = bad signature, 400 = malformed, 503 = verification keys unavailable (retry).
+      parameters:
+      - in: path
+        name: provider
+        schema:
+          type: string
+        required: true
+      tags:
+      - advertising
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
           description: ''
   /api/v1/analytics/overview/:
     get:
@@ -982,6 +1069,201 @@ paths:
       - config
       security:
       - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/credits/balance/:
+    get:
+      operationId: credits_balance_retrieve
+      tags:
+      - credits
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/credits/history/:
+    get:
+      operationId: credits_history_list
+      description: The signed-in user's own credit movements, newest first. `?type=`
+        filters.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - credits
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCreditHistoryList'
+          description: ''
+  /api/v1/credits/limit-screen/:
+    get:
+      operationId: credits_limit_screen_retrieve
+      description: Everything a client needs for its 'limit reached' screen. Anyone
+        can ask; it never spends or grants anything.
+      parameters:
+      - in: query
+        name: feature
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: platform
+        schema:
+          type: string
+          enum:
+          - android
+          - web
+      tags:
+      - credits
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/credits/rewarded-offers/:
+    get:
+      operationId: credits_rewarded_offers_retrieve
+      parameters:
+      - in: query
+        name: platform
+        schema:
+          type: string
+          enum:
+          - android
+          - web
+        required: true
+      tags:
+      - credits
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/credits/rewarded-sessions/:
+    post:
+      operationId: credits_rewarded_sessions_create
+      description: 'Create a short-lived, single-use rewarded-ad session. The user
+        must opt in: nothing plays automatically.'
+      tags:
+      - credits
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/credits/rewarded-sessions/{id}/:
+    get:
+      operationId: credits_rewarded_sessions_retrieve
+      description: 'Poll this after the ad: credits appear once the provider''s verified
+        completion has been processed.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - credits
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/credits/rewarded-sessions/{id}/complete/:
+    post:
+      operationId: credits_rewarded_sessions_complete_create
+      description: |-
+        WEB ONLY, DISABLED BY DEFAULT. Google Ad Manager has no server-side verification for web rewarded ads, so a completion can
+        only be client-attested. It works only when an administrator enabled `rewarded_web_client_attested_enabled`, and still needs a
+        started session of your own, a plausible watch time, caps and cooldown. Android rewards never use this endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - credits
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/credits/rewarded-sessions/{id}/events/:
+    post:
+      operationId: credits_rewarded_sessions_events_create
+      description: Client-reported progress (ad loaded / started / closed / no fill
+        ...). It can NEVER grant credits.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - credits
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Event'
+        required: true
+      security:
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -2041,6 +2323,49 @@ components:
           readOnly: true
       required:
       - updated_at
+    Adjust:
+      type: object
+      properties:
+        user:
+          type: string
+          description: User email or id
+          maxLength: 254
+        kind:
+          $ref: '#/components/schemas/AdjustKindEnum'
+        amount:
+          type: integer
+          maximum: 1000000
+          minimum: 1
+          description: Always positive; a reversal removes this many
+        reason:
+          type: string
+          description: Internal note, required
+          maxLength: 300
+          minLength: 5
+        expires_in_days:
+          type: integer
+          maximum: 3650
+          minimum: 1
+        request_id:
+          type: string
+          format: uuid
+          description: Send the same id when retrying so the adjustment is applied
+            once
+      required:
+      - amount
+      - kind
+      - reason
+      - user
+    AdjustKindEnum:
+      enum:
+      - grant
+      - promotional
+      - reversal
+      type: string
+      description: |-
+        * `grant` - grant
+        * `promotional` - promotional
+        * `reversal` - reversal
     AnalyzeRequest:
       type: object
       properties:
@@ -2139,6 +2464,47 @@ components:
       description: |-
         * `static` - Static
         * `dynamic` - Dynamic
+    CreditHistory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        type:
+          type: string
+        amount:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          description: Positive for a credit, negative for a debit
+        balance_after:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        feature_key:
+          type: string
+          maxLength: 80
+        reason:
+          type: string
+          maxLength: 300
+        expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - balance_after
+      - created_at
+      - expires_at
+      - id
+      - type
     DecodeRequest:
       type: object
       properties:
@@ -2160,6 +2526,19 @@ components:
         refresh:
           type: boolean
           default: false
+        use_credits:
+          type: boolean
+          default: false
+          description: 'Only when the allowance is used up: spend ScanSentry Credits
+            for this one lookup'
+        platform:
+          allOf:
+          - $ref: '#/components/schemas/PlatformEnum'
+          description: |-
+            Lets a 'limit reached' answer include the right rewarded-ad offers
+
+            * `web` - web
+            * `android` - android
       required:
       - value
     ErrorCorrectionEnum:
@@ -2174,6 +2553,33 @@ components:
         * `M` - M
         * `Q` - Q
         * `H` - H
+    Event:
+      type: object
+      properties:
+        event:
+          $ref: '#/components/schemas/EventEnum'
+      required:
+      - event
+    EventEnum:
+      enum:
+      - ad_available
+      - cancelled
+      - client_reward_reported
+      - closed_early
+      - load_failed
+      - no_fill
+      - started
+      - timeout
+      type: string
+      description: |-
+        * `ad_available` - ad_available
+        * `cancelled` - cancelled
+        * `client_reward_reported` - client_reward_reported
+        * `closed_early` - closed_early
+        * `load_failed` - load_failed
+        * `no_fill` - no_fill
+        * `started` - started
+        * `timeout` - timeout
     GenericDetail:
       type: object
       properties:
@@ -2412,6 +2818,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Campaign'
+    PaginatedCreditHistoryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreditHistory'
     PaginatedHistoryList:
       type: object
       required:
@@ -2679,6 +3108,14 @@ components:
           format: date-time
           readOnly: true
           nullable: true
+    PlatformEnum:
+      enum:
+      - web
+      - android
+      type: string
+      description: |-
+        * `web` - web
+        * `android` - android
     Preference:
       type: object
       properties:
@@ -2960,6 +3397,17 @@ components:
           description: Request an AI-worded explanation (signed-in, if enabled)
       required:
       - url
+    SessionCreate:
+      type: object
+      properties:
+        offer:
+          type: string
+          format: uuid
+        platform:
+          $ref: '#/components/schemas/PlatformEnum'
+      required:
+      - offer
+      - platform
     SeverityEnum:
       enum:
       - info

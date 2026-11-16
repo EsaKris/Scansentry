@@ -141,3 +141,43 @@ def plans(db):
 def ps(senv, pay_settings):
     from tests.billing_sim import PaystackSim
     return PaystackSim(senv)
+
+
+# ---- rewarded ads & credits fixtures ----------------------------------------------------------------------------------------
+def set_config(key, value):
+    from apps.core.models import AppConfiguration
+    AppConfiguration.objects.update_or_create(key=key, defaults={"value": value})
+
+
+@pytest.fixture
+def admob(monkeypatch):
+    from tests.rewards_sim import AdMobSim
+    return AdMobSim(monkeypatch)
+
+
+@pytest.fixture
+def rewards_on(db):
+    """The product owner has switched rewarded ads on for Android and created one offer (test mode, the safe default)."""
+    from types import SimpleNamespace
+    from apps.advertising.models import AdProvider
+    from apps.credits.models import RewardedAdOffer
+    set_config("rewarded_ads_enabled", True)
+    set_config("rewarded_ads_android_enabled", True)
+    provider = AdProvider.objects.get(key="admob")
+    AdProvider.objects.filter(pk=provider.pk).update(enabled=True)
+    provider.refresh_from_db()
+    offer = RewardedAdOffer.objects.create(name="Android: extra lookups", enabled=True, platform="android", provider=provider,
+                                           reward_amount=5, eligible_features=["domain.lookups"])
+    return SimpleNamespace(offer=offer, provider=provider)
+
+
+def start_session(client, offer, platform="android", started=True):
+    """Create a rewarded session over the API (and report it started, as a client would). Returns (response data, session)."""
+    from apps.credits.models import RewardedAdSession
+    resp = client.post("/api/v1/credits/rewarded-sessions/", {"offer": str(offer.id), "platform": platform}, format="json")
+    assert resp.status_code == 201, resp.data
+    session = RewardedAdSession.objects.get(pk=resp.data["id"])
+    if started:
+        client.post(f"/api/v1/credits/rewarded-sessions/{session.pk}/events/", {"event": "started"}, format="json")
+        session.refresh_from_db()
+    return resp.data, session

@@ -24,6 +24,7 @@ def api_exception_handler(exc, context):
         data = response.data
         message = data.get("detail", "Request failed.") if isinstance(data, dict) else str(data)
         message = str(message)
+        details = getattr(exc, "extra", None)      # exceptions may carry structured details (e.g. the usage-limit screen)
 
     response.data = {"error": {"code": code, "message": message, "details": details}}
     return response
