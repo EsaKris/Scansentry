@@ -167,7 +167,7 @@ def apply_payment_success(tx: PaymentTransaction, vr: VerifyResult, *, now: date
 
 def _credit(tx: PaymentTransaction, vr: VerifyResult, now: datetime) -> bool:
     with transaction.atomic():
-        tx = PaymentTransaction.objects.select_for_update().select_related("plan", "user").get(pk=tx.pk)
+        tx = PaymentTransaction.objects.select_for_update(of=("self",)).select_related("plan", "user").get(pk=tx.pk)
         if tx.status == T.SUCCESS:
             return False
         if vr.status != "success":
@@ -178,7 +178,7 @@ def _credit(tx: PaymentTransaction, vr: VerifyResult, now: datetime) -> bool:
             raise PaymentMismatch("the plan no longer exists")
         tx.status, tx.verified_at, tx.paid_at = T.SUCCESS, now, vr.paid_at or now
         tx.payment_method, tx.customer_reference = vr.channel[:30], vr.customer_reference[:120]
-        sub = Subscription.objects.select_for_update().filter(user=tx.user, is_current=True).select_related("plan").first()
+        sub = Subscription.objects.select_for_update(of=("self",)).filter(user=tx.user, is_current=True).select_related("plan").first()
         old_status, old_plan = (sub.status if sub else ""), (sub.plan if sub else None)
         extending = sub is not None and sub.plan_id == plan.id and has_access(sub, now) and sub.status != S.TRIALING
         if extending:
@@ -279,7 +279,7 @@ def verify_checkout(user, reference: str) -> PaymentTransaction:
 def cancel_subscription(user, *, immediately: bool = False, now: datetime | None = None) -> dict:
     now = now or _now()
     with transaction.atomic():
-        sub = Subscription.objects.select_for_update().filter(user=user, is_current=True).select_related("plan").first()
+        sub = Subscription.objects.select_for_update(of=("self",)).filter(user=user, is_current=True).select_related("plan").first()
         if sub is None or sub.status not in LIVE or not has_access(sub, now):
             raise BillingError("no_active_subscription", "You have no active subscription to cancel.", http.HTTP_404_NOT_FOUND)
         old = sub.status

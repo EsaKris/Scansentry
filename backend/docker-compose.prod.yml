@@ -1,0 +1,32 @@
+# Example production-style stack: API + scheduler + Redis. The database is EXTERNAL (Supabase / managed Postgres): set DATABASE_URL in .env.production.
+# This is a template to adapt to your host (Railway / Render / Fly.io run the same image: see docs/DEPLOYMENT.md).
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    restart: unless-stopped
+  migrate:
+    build: .
+    env_file: .env.production
+    environment: {REDIS_URL: "redis://redis:6379/0"}
+    command: ["python", "manage.py", "migrate", "--noinput"]
+    depends_on: [redis]
+    restart: "no"
+  api:
+    build: .
+    env_file: .env.production
+    environment: {REDIS_URL: "redis://redis:6379/0"}
+    ports: ["8000:8000"]
+    depends_on:
+      redis: {condition: service_started}
+      migrate: {condition: service_completed_successfully}
+    restart: unless-stopped
+  scheduler:
+    build: .
+    env_file: .env.production
+    environment: {REDIS_URL: "redis://redis:6379/0"}
+    command: ["sh", "deploy/scheduler.sh"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    restart: unless-stopped

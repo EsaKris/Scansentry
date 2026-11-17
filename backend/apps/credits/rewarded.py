@@ -29,6 +29,12 @@ CLAIM_FIELDS = {"day": "maximum_claims_per_day", "week": "maximum_claims_per_wee
 TERMS = ("ScanSentry Credits are usage units only. They have no cash value and cannot be withdrawn, transferred, sold or used to "
          "buy subscriptions. You choose whether to watch; scanning and security warnings never need credits or an advertisement.")
 CLOCK_SKEW = timedelta(seconds=60)
+# Every outcome/rejection code this module can produce. Listed so a test can prove each fits its database column
+# (SQLite does not enforce string lengths, PostgreSQL does).
+OUTCOMES = ("accepted", "duplicate", "replay", "rejected", "session_not_found", "session_mismatch", "user_mismatch", "ad_unit_mismatch",
+            "reward_before_session", "session_expired", "callback_too_late", "test_ad_in_production", "rewards_disabled",
+            "verification_unavailable", "not_entitled", "earning_suspended", "claim_cap_reached", "earning_cap_reached", "cooldown",
+            "not_started", "completed_too_quickly")
 
 
 class RewardNotAvailable(Exception):
@@ -295,10 +301,13 @@ def settle(session_token: str, *, provider: str, transaction_id: str, reward_at:
     session_mismatch | user_mismatch | ad_unit_mismatch | and every rejection reason. Only verified completions may call this."""
     now = _now(now)
     with transaction.atomic():
-        s = RewardedAdSession.objects.select_for_update().select_related("rewarded_ad_offer__provider", "user") \
+        s = RewardedAdSession.objects.select_for_update(of=("self",)).select_related("rewarded_ad_offer__provider", "user") \
             .filter(unique_session_token=session_token).first()
         if s is None:
             return SimpleNamespace(code="session_not_found", session=None, entry=None, granted=False)
+        # Serialise per USER (not per offer/provider): caps, cooldown and earning limits are read-then-written, so two simultaneous
+        # callbacks for one user's different sessions must not both pass the check. Lock the wallet row before reading them.
+        service.wallet_for(s.user, lock=True)
         if s.provider != provider:
             return SimpleNamespace(code="session_mismatch", session=s, entry=None, granted=False)
         if expected_user_id is not None and str(s.user_id) != str(expected_user_id):

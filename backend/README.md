@@ -1,4 +1,4 @@
-# ScanSentry — Backend (Milestones 1–8: …, Pricing & subscriptions, Advertising, Rewarded ads & Credits)
+# ScanSentry — Backend (Milestones 1–9: …, Advertising, Rewarded ads & Credits, Release hardening)
 
 Django 5.2 + Django REST Framework API shared by the web and Android clients.
 
@@ -31,7 +31,9 @@ Django 5.2 + Django REST Framework API shared by the web and Android clients.
 - **Rewarded ads & ScanSentry Credits (Milestone 8):** append-only credit ledger and wallet, admin-configured rewarded offers, single-use
   server-created ad sessions, AdMob server-side-verified rewards (ECDSA), caps/cooldowns, credit-funded extra usage, limit-screen data,
   audited admin adjustments and reporting
-- 1094 automated tests (generated codes are decoded back; the SSRF guard, security, privacy, isolation, billing and advertising
+- **Release hardening (Milestone 9):** production settings that fail closed, shared Redis rate limits, structured JSON logs with request ids, privacy-scrubbed Sentry,
+  private object storage, admin sign-in throttle, non-root container, smoke test, backup/restore scripts, RLS script, deployment/operations docs, PostgreSQL + concurrency testing
+- 1130 automated tests (1124 on SQLite + 6 PostgreSQL-only concurrency tests), run on both databases (generated codes are decoded back; the SSRF guard, security, privacy, isolation, billing and advertising
   rules are tested against a fake internet with real TLS handshakes and simulated payment providers, and mutation-checked)
 
 ## Quick start (local, SQLite)
@@ -519,6 +521,20 @@ unrewarded sessions 90 days; rewarded sessions and the ledger are kept. Admin ro
 `https://<your-api>/api/v1/advertising/reward-callbacks/admob/` (AdMob has a test tool for it); put the real unit on the offer, enable the `admob` provider,
 switch `rewarded_ads_test_mode` off. The callback URL must be reachable by Google (HTTPS). Android SSV also needs UMP consent in the app before requests.
 
+## Documentation (Milestone 9)
+| Document | For |
+|---|---|
+| `docs/DEPLOYMENT.md` | step-by-step production deployment (Supabase, Redis, object storage, API, scheduler), updating and rollback |
+| `docs/OPERATIONS.md` | scheduled jobs, monitoring, backups and restore drills, secret rotation, incident playbooks |
+| `docs/SANDBOX_TESTING.md` | what must be tested live (domains, Web Risk, Paystack, AdMob, email, devices) and what "pass" means |
+| `docs/ACCEPTANCE.md` | the PRD's 23 scenarios mapped to tests, with honest status (21 backend-verified, 1 partial, 1 unproven) |
+| `docs/PRIVACY_AND_DATA.md` | data inventory and retention for the privacy policy and Play Data safety form (not legal advice) |
+| `docs/USER_GUIDE.md` | end-user guide |
+| `docs/MVP_SCOPE.md` | what is outside the MVP and what remains |
+| `docs/DEMO_AND_SUBMISSION.md` | what can be demonstrated today, and the submission checklist |
+| `docs/TESTING.md` | how to run the tests (SQLite and PostgreSQL), static checks, mutation checking |
+Scripts: `scripts/smoke_test.py <url>` (post-deploy checks), `scripts/backup_db.sh`, `scripts/restore_drill.sh`, `scripts/enable_rls.sql`; `deploy/scheduler.sh`; `docker-compose.prod.yml`; `ci/github-actions-backend.yml`.
+
 ## Settings modules
 `config.settings.local` (dev), `.test` (pytest, forced by pytest.ini), `.production`
 (HTTPS, HSTS, secure cookies; refuses to start with the default secret key).
@@ -527,4 +543,4 @@ switch `rewarded_ads_test_mode` off. The callback URL must be reachable by Googl
 Session/device management, email change, QR codes, scanner, domain intelligence,
 Celery/Redis, Google Play Billing / Stripe, domain-report export. See SECURITY.md known gaps.
 
-## Next: Milestone 9 — quality, deployment, documentation, demo
+## What is next: the web and Android apps, live testing, and the remaining backend gaps (see docs/MVP_SCOPE.md)

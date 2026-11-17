@@ -30,6 +30,7 @@ KEYS_TTL_SECONDS = 6 * 3600                       # Google's documented ceiling 
 REFETCH_COOLDOWN_KEY = "rewarded:admob:keys-refetched"
 REFETCH_COOLDOWN_SECONDS = 300                    # an unknown key id triggers at most one refresh per 5 minutes
 MAX_QUERY = 4096
+MAX_TRANSACTION_ID = 120                    # stored in 200-character columns together with a prefix
 REQUIRED = ("transaction_id", "custom_data", "user_id", "ad_unit", "timestamp", "key_id", "signature")
 
 
@@ -110,6 +111,8 @@ def verify_admob(query_string: str) -> Claim:
     params = parse_qs(query_string, keep_blank_values=True)
     if any(len(v) != 1 for v in params.values()) or any(not params.get(k, [""])[0] for k in REQUIRED):
         raise VerificationFailure("malformed", "a required parameter is missing or repeated")
+    if len(params["transaction_id"][0]) > MAX_TRANSACTION_ID:
+        raise VerificationFailure("malformed", "transaction_id is too long")
     signature, key_id = params["signature"][0], params["key_id"][0]
     if sig_part != signature:
         raise VerificationFailure("malformed", "inconsistent signature parameter")

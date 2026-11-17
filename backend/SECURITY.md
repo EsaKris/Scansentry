@@ -119,6 +119,22 @@ Mutation-checked: signature verification, overdraw guard, idempotency (both laye
 unsigned appended parameters, silent spending, spending expired credits, web attestation switch and post-expiry completion, test ads in production, user mismatch,
 grant-time cap, transaction-id replay, repeatable refunds, rewarded-provider capability, ledger edits, admin permission, key-server outage handling.
 
+## Milestone 9: security review
+Scope: this was a review by the engineer who built the system plus tooling. It is **not** an independent penetration test: commission one before real money or real users.
+**Tooling:** `bandit -ll` reports no medium/high findings (the 9 low findings are false positives on strings such as rate names); `pip-audit` reports no known vulnerable dependencies;
+`manage.py check --deploy` is clean with the production settings.
+**Defects found and fixed during the review** (each now has a regression test):
+1. *Per-process rate limits.* With no shared cache, every limit (login, scanning, callbacks) was multiplied by the worker count. Production now refuses to start without `REDIS_URL` (explicit single-worker opt-out available); verified with real Redis across separate processes.
+2. *Container would have broken the admin.* Static files were collected with the local settings while production uses a manifest storage: `/admin/` raised a 500. The image now collects with production settings (verified).
+3. *Admin sign-in had no brute-force protection.* Added a per-client throttle (client address taken from `NUM_PROXIES`, a forged `X-Forwarded-For` is ignored) and a configurable admin path.
+4. *Payment-verification lock error on PostgreSQL.* `select_for_update` across a nullable join is rejected by PostgreSQL, which would have made payment verification fail with a 500 in production (SQLite hid it). Fixed in three places.
+5. *Over-long column in the reward code* (outcome text longer than its column on PostgreSQL). Widened by a migration; every outcome code is now tested against the column limits; over-long provider transaction ids are refused.
+6. *Reward-cap race.* A cap check was protected only by an accident of unrelated row locking. Settlement now locks the session and then the user's wallet row before any cap, cooldown or earning-limit check; a parallel test (12 simultaneous callbacks, cap 2) fails without it and passes with it.
+7. *Local file storage on ephemeral disks.* Uploaded logos/evidence would vanish on redeploy. Added private, signed-URL-only S3-compatible storage; filesystem remains available for persistent volumes.
+8. *Logs and error reports could contain secrets.* gunicorn access logs are off by default and, when on, record paths only; application logs strip query strings and bearer tokens; Sentry (optional) is scrubbed of query strings, bodies, cookies, sensitive headers and user identity.
+**Verified live in the sandbox:** production gunicorn (2 workers) + Redis + migrated PostgreSQL pass the 18-check smoke test; the access log contained no query string; a backup restored into a scratch database with its data and credit-ledger total intact; the RLS script locked all 50 tables, Django (owner role) kept working and a non-owner role with a `SELECT` grant read 0 rows.
+**Not verified:** the Docker image build, any real host, Supabase specifics (pooler/IPv6, Storage S3 endpoint, backup plans), real object storage, Google/Paystack/AdMob behaviour, real devices, load/performance, and the CI workflow.
+
 ## Known gaps (tracked for later milestones)
 - **Web rewarded ads cannot be server-verified** (Google: Ad Manager SSV is app-only). They are off by default; if enabled they are client-attested and farmable by a determined user
 - The SSV adapter was written from Google's public documentation and tested against a simulated signer: verify it with AdMob's SSV test tool and a real device before enabling rewards

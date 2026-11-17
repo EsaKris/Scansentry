@@ -180,7 +180,7 @@ class RewardCallbackEvent(models.Model):
 
     provider = models.CharField(max_length=40)
     received_at = models.DateTimeField(auto_now_add=True, db_index=True)
-    outcome = models.CharField(max_length=32)
+    outcome = models.CharField(max_length=64)
     session = models.ForeignKey(RewardedAdSession, null=True, blank=True, on_delete=models.SET_NULL, related_name="callbacks")
     provider_transaction_id = models.CharField(max_length=200, blank=True)
 

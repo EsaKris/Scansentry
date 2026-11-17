@@ -449,3 +449,20 @@ def test_web_attestation_cannot_complete_someone_elses_session(auth_client, othe
     s = web_session(auth_client, web)
     RewardedAdSession.objects.filter(pk=s.pk).update(started_at=timezone.now() - timedelta(seconds=30))
     assert complete(other_client, s).status_code == 404 and service.balance_of(other_user) == 0
+
+
+# ---- database column limits (SQLite ignores string lengths; PostgreSQL enforces them) ------------------------------------------------
+def test_every_outcome_code_fits_its_database_column():
+    from apps.credits import rewarded
+    outcome_max = RewardCallbackEvent._meta.get_field("outcome").max_length
+    reason_max = RewardedAdSession._meta.get_field("rejection_reason").max_length
+    for code in rewarded.OUTCOMES:
+        assert len(code) <= reason_max, code
+        assert len(f"attested_{code}") <= outcome_max, code          # the web endpoint stores "attested_<code>"
+    for code in ("invalid_signature", "malformed", "key_unavailable"):
+        assert len(code) <= outcome_max
+
+
+def test_an_oversized_transaction_id_is_refused_as_malformed(api, admob, sess, user):
+    r = admob.call(api, sess, tx="t" * 300)
+    assert r.status_code == 400 and service.balance_of(user) == 0
