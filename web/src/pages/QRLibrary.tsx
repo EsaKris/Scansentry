@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Download, Pause, Play, Trash2, ExternalLink, Calendar, Search } from 'lucide-react';
+import { Plus, Download, Pause, Play, ExternalLink, Calendar, Search } from 'lucide-react';
 import api from '../services/api';
 
 interface QRCodeData {
