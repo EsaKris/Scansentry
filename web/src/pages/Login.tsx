@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield, Mail, Lock, AlertCircle } from 'lucide-react';
+import { Shield, Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from "../context/AuthContext";
 import api from '../services/api';
 
@@ -9,6 +9,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); 
   
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -29,6 +30,10 @@ export default function Login() {
       });
       navigate('/dashboard');
     } catch (err: any) {
+       // This turns the object into a readable string
+      console.log("LOGIN ERROR STRING:", JSON.stringify(err.response?.data, null, 2));
+       alert(JSON.stringify(err.response?.data)); // This will pop up the exact error!
+        alert("Login failed! Check the console (F12) for details.");
       setError(err.response?.data?.detail || 'Invalid email or password. Please try again.');
     } finally {
       setIsLoading(false);
@@ -86,7 +91,7 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-teal/50 focus:border-brand-teal transition"
-                  placeholder="you@company.com"
+                  placeholder="Your Email"
                 />
               </div>
             </div>
@@ -101,13 +106,23 @@ export default function Login() {
               <div className="relative">
                 <Lock className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-teal/50 focus:border-brand-teal transition"
                   placeholder="••••••••"
                 />
+                
+                 {/* eye button */}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+
               </div>
             </div>
 
