@@ -159,12 +159,12 @@ SPECTACULAR_SETTINGS = {
 }
 
 # --- CORS ---------------------------------------------------------------------
-CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "https://scansentry.vercel.app/")
+CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "https://scansentry.vercel.app")
 
 # --- Email --------------------------------------------------------------------
 EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "ScanSentry <no-reply@scansentry.local>")
-FRONTEND_URL = env("FRONTEND_URL", "https://scansentry.vercel.app/")
+FRONTEND_URL = env("FRONTEND_URL", "https://scansentry.vercel.app")
 
 # --- i18n / static / media ------------------------------------------------------
 LANGUAGE_CODE = "en-us"
