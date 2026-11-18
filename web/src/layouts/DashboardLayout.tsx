@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useLocation} from 'react-router-dom';
 import { Shield, QrCode, LayoutDashboard, Globe, LogOut, User, BookOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
