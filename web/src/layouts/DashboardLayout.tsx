@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Shield, QrCode, LayoutDashboard, Globe, Bell, LogOut, User, BookOpen } from 'lucide-react';
+import { Shield, QrCode, LayoutDashboard, Globe, LogOut, User, BookOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function DashboardLayout() {
