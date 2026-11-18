@@ -9,6 +9,12 @@ def api_exception_handler(exc, context):
         return None
 
     code = getattr(exc, "default_code", "error")
+    try:                                    # prefer the specific code the exception was raised with
+        specific = exc.get_codes()
+        if isinstance(specific, str):
+            code = specific
+    except Exception:
+        pass
     details = None
     if isinstance(exc, ValidationError):
         code = "validation_error"
@@ -18,6 +24,7 @@ def api_exception_handler(exc, context):
         data = response.data
         message = data.get("detail", "Request failed.") if isinstance(data, dict) else str(data)
         message = str(message)
+        details = getattr(exc, "extra", None)      # exceptions may carry structured details (e.g. the usage-limit screen)
 
     response.data = {"error": {"code": code, "message": message, "details": details}}
     return response

@@ -1,1 +1,4 @@
 -r base.txt
+redis>=5.0
+sentry-sdk>=2.0
+django-storages[s3]>=1.14

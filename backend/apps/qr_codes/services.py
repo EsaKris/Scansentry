@@ -97,6 +97,8 @@ def change_destination(qr: QRCode, new_destination: str, *, user, reason: str = 
         changed_by=user, change_reason=reason[:255])
     record_audit(actor=user, action="qr.destination_changed", obj=qr,
                  before={"destination": old}, after={"destination": new_destination})
+    from apps.notifications.service import alert_destination_changed
+    alert_destination_changed(qr, old, new_destination)
     return True
 
 
@@ -135,11 +137,16 @@ def activate_qr(qr: QRCode, *, user):
 def disable_qr(qr: QRCode, *, user, reason="", by_staff=False):
     if qr.status != QRCode.Status.DISABLED:
         _set_status(qr, QRCode.Status.DISABLED, user=user, reason=reason, by_staff=by_staff)
+        if by_staff:   # staff / policy action: the owner must be told
+            from apps.notifications.service import alert_qr_disabled
+            alert_qr_disabled(qr, reason)
 
 
 @transaction.atomic
 def staff_restore_qr(qr: QRCode, *, user):
     _set_status(qr, QRCode.Status.ACTIVE, user=user)
+    from apps.notifications.service import alert_qr_restored
+    alert_qr_restored(qr)
 
 
 def process_logo_upload(upload) -> ContentFile:

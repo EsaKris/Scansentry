@@ -4,6 +4,555 @@ info:
   version: 1.0.0
   description: Create. Verify. Monitor. Protect.
 paths:
+  /api/v1/activity/:
+    get:
+      operationId: activity_list
+      description: The signed-in user's own audit trail. Read-only; IP addresses are
+        never exposed.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - activity
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedActivityList'
+          description: ''
+  /api/v1/admin/advertising/overview/:
+    get:
+      operationId: admin_advertising_overview_retrieve
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/admin/advertising/simulate/:
+    get:
+      operationId: admin_advertising_simulate_retrieve
+      description: 'Support tool: what would this user see on this screen? Uses the
+        real decision engine.'
+      parameters:
+      - in: query
+        name: platform
+        schema:
+          type: string
+      - in: query
+        name: surface
+        schema:
+          type: string
+      - in: query
+        name: user
+        schema:
+          type: string
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/admin/billing/overrides/:
+    post:
+      operationId: admin_billing_overrides_create
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Override'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/admin/billing/overrides/{id}/revoke/:
+    post:
+      operationId: admin_billing_overrides_revoke_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Note'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/admin/billing/overview/:
+    get:
+      operationId: admin_billing_overview_retrieve
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/admin/billing/subscriptions/extend/:
+    post:
+      operationId: admin_billing_subscriptions_extend_create
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionAction'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/admin/billing/subscriptions/restore/:
+    post:
+      operationId: admin_billing_subscriptions_restore_create
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionAction'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/admin/billing/subscriptions/suspend/:
+    post:
+      operationId: admin_billing_subscriptions_suspend_create
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionAction'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/admin/billing/webhook-events/:
+    get:
+      operationId: admin_billing_webhook_events_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWebhookEventList'
+          description: ''
+  /api/v1/admin/credits/adjust/:
+    post:
+      operationId: admin_credits_adjust_create
+      description: Audited administrator grant / promotional credit / reversal. Needs
+        a reason; never edits history, it appends to the ledger.
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Adjust'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/admin/credits/overview/:
+    get:
+      operationId: admin_credits_overview_retrieve
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/advertising/config/:
+    get:
+      operationId: advertising_config_retrieve
+      description: Safe, public advertising settings for the clients. Contains no
+        secrets and no per-user data.
+      tags:
+      - advertising
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/advertising/eligible-placements/:
+    get:
+      operationId: advertising_eligible_placements_retrieve
+      description: The single ad-eligibility decision for a user, platform and screen.
+      parameters:
+      - in: query
+        name: platform
+        schema:
+          type: string
+          enum:
+          - android
+          - web
+        required: true
+      - in: query
+        name: surface
+        schema:
+          type: string
+        description: The screen asking, e.g. dashboard
+      tags:
+      - advertising
+      security:
+      - jwtAuthOptional: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/advertising/preferences/:
+    get:
+      operationId: advertising_preferences_retrieve
+      description: The user's own personalisation choice (null = none made). Provider
+        consent is collected by the client's consent platform.
+      tags:
+      - advertising
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdPreference'
+          description: ''
+    patch:
+      operationId: advertising_preferences_partial_update
+      description: The user's own personalisation choice (null = none made). Provider
+        consent is collected by the client's consent platform.
+      tags:
+      - advertising
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAdPreference'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAdPreference'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAdPreference'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdPreference'
+          description: ''
+  /api/v1/advertising/reward-callbacks/{provider}/:
+    get:
+      operationId: advertising_reward_callbacks_retrieve
+      description: |-
+        Provider reward callbacks. Authenticity is the provider's signature, not a login: forged, tampered, expired, duplicated and
+        replayed callbacks never issue credits. AdMob sends a GET; POST is accepted for providers that post. 200 = handled (do not retry),
+        403 = bad signature, 400 = malformed, 503 = verification keys unavailable (retry).
+      parameters:
+      - in: path
+        name: provider
+        schema:
+          type: string
+        required: true
+      tags:
+      - advertising
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: advertising_reward_callbacks_create
+      description: |-
+        Provider reward callbacks. Authenticity is the provider's signature, not a login: forged, tampered, expired, duplicated and
+        replayed callbacks never issue credits. AdMob sends a GET; POST is accepted for providers that post. 200 = handled (do not retry),
+        403 = bad signature, 400 = malformed, 503 = verification keys unavailable (retry).
+      parameters:
+      - in: path
+        name: provider
+        schema:
+          type: string
+        required: true
+      tags:
+      - advertising
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/analytics/overview/:
+    get:
+      operationId: analytics_overview_retrieve
+      parameters:
+      - in: query
+        name: days
+        schema:
+          type: integer
+        description: Last N days (default 30)
+      - in: query
+        name: export
+        schema:
+          type: string
+          enum:
+          - csv
+        description: Needs advanced analytics
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: granularity
+        schema:
+          type: string
+          enum:
+          - day
+          - month
+          - week
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: tz
+        schema:
+          type: string
+        description: IANA time zone, e.g. Africa/Lagos
+      tags:
+      - analytics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/analytics/qr-performance/:
+    get:
+      operationId: analytics_qr_performance_retrieve
+      parameters:
+      - in: query
+        name: days
+        schema:
+          type: integer
+        description: Last N days (default 30)
+      - in: query
+        name: export
+        schema:
+          type: string
+          enum:
+          - csv
+        description: Needs advanced analytics
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: granularity
+        schema:
+          type: string
+          enum:
+          - day
+          - month
+          - week
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: tz
+        schema:
+          type: string
+        description: IANA time zone, e.g. Africa/Lagos
+      tags:
+      - analytics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/analytics/scans/:
+    get:
+      operationId: analytics_scans_retrieve
+      parameters:
+      - in: query
+        name: days
+        schema:
+          type: integer
+        description: Last N days (default 30)
+      - in: query
+        name: export
+        schema:
+          type: string
+          enum:
+          - csv
+        description: Needs advanced analytics
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: granularity
+        schema:
+          type: string
+          enum:
+          - day
+          - month
+          - week
+      - in: query
+        name: qr
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: tz
+        schema:
+          type: string
+        description: IANA time zone, e.g. Africa/Lagos
+      tags:
+      - analytics
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/v1/auth/login/:
     post:
       operationId: auth_login_create
@@ -240,6 +789,161 @@ paths:
               schema:
                 $ref: '#/components/schemas/GenericDetail'
           description: ''
+  /api/v1/billing/cancel/:
+    post:
+      operationId: billing_cancel_create
+      tags:
+      - billing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Cancel'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/billing/checkout/:
+    post:
+      operationId: billing_checkout_create
+      description: The client sends WHICH plan; it can never send a price. The amount
+        is read from the database.
+      tags:
+      - billing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Checkout'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/billing/checkout/verify/:
+    post:
+      operationId: billing_checkout_verify_create
+      tags:
+      - billing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Verify'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/billing/entitlements/:
+    get:
+      operationId: billing_entitlements_retrieve
+      description: What this user may do. Web and Android use this same decision;
+        the backend enforces it regardless.
+      tags:
+      - billing
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/billing/resume/:
+    post:
+      operationId: billing_resume_create
+      tags:
+      - billing
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/billing/subscription/:
+    get:
+      operationId: billing_subscription_retrieve
+      tags:
+      - billing
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/billing/transactions/:
+    get:
+      operationId: billing_transactions_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - billing
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTransactionList'
+          description: ''
+  /api/v1/billing/webhooks/{provider}/:
+    post:
+      operationId: billing_webhooks_create
+      description: Provider callbacks. Public by necessity; protected by signature
+        verification.
+      parameters:
+      - in: path
+        name: provider
+        schema:
+          type: string
+        required: true
+      tags:
+      - billing
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/v1/campaigns/:
     get:
       operationId: campaigns_list
@@ -373,6 +1077,275 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/v1/credits/balance/:
+    get:
+      operationId: credits_balance_retrieve
+      tags:
+      - credits
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/credits/history/:
+    get:
+      operationId: credits_history_list
+      description: The signed-in user's own credit movements, newest first. `?type=`
+        filters.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - credits
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCreditHistoryList'
+          description: ''
+  /api/v1/credits/limit-screen/:
+    get:
+      operationId: credits_limit_screen_retrieve
+      description: Everything a client needs for its 'limit reached' screen. Anyone
+        can ask; it never spends or grants anything.
+      parameters:
+      - in: query
+        name: feature
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: platform
+        schema:
+          type: string
+          enum:
+          - android
+          - web
+      tags:
+      - credits
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/credits/rewarded-offers/:
+    get:
+      operationId: credits_rewarded_offers_retrieve
+      parameters:
+      - in: query
+        name: platform
+        schema:
+          type: string
+          enum:
+          - android
+          - web
+        required: true
+      tags:
+      - credits
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/credits/rewarded-sessions/:
+    post:
+      operationId: credits_rewarded_sessions_create
+      description: 'Create a short-lived, single-use rewarded-ad session. The user
+        must opt in: nothing plays automatically.'
+      tags:
+      - credits
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/credits/rewarded-sessions/{id}/:
+    get:
+      operationId: credits_rewarded_sessions_retrieve
+      description: 'Poll this after the ad: credits appear once the provider''s verified
+        completion has been processed.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - credits
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/credits/rewarded-sessions/{id}/complete/:
+    post:
+      operationId: credits_rewarded_sessions_complete_create
+      description: |-
+        WEB ONLY, DISABLED BY DEFAULT. Google Ad Manager has no server-side verification for web rewarded ads, so a completion can
+        only be client-attested. It works only when an administrator enabled `rewarded_web_client_attested_enabled`, and still needs a
+        started session of your own, a plausible watch time, caps and cooldown. Android rewards never use this endpoint.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - credits
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/credits/rewarded-sessions/{id}/events/:
+    post:
+      operationId: credits_rewarded_sessions_events_create
+      description: Client-reported progress (ad loaded / started / closed / no fill
+        ...). It can NEVER grant credits.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - credits
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Event'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/domains/analyze/:
+    post:
+      operationId: domains_analyze_create
+      description: Public domain checker (rate-limited). Signed-in users also get
+        history and may force a refresh.
+      tags:
+      - domains
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DomainAnalyzeRequest'
+        required: true
+      security:
+      - jwtAuthOptional: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/domains/assessments/{id}/:
+    get:
+      operationId: domains_assessments_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - domains
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/domains/history/:
+    get:
+      operationId: domains_history_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - domains
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedHistoryList'
+          description: ''
   /api/v1/health/:
     get:
       operationId: health_retrieve
@@ -386,6 +1359,133 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Health'
+          description: ''
+  /api/v1/notifications/:
+    get:
+      operationId: notifications_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - notifications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationList'
+          description: ''
+  /api/v1/notifications/{id}/read/:
+    post:
+      operationId: notifications_read_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notifications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/notifications/preferences/:
+    get:
+      operationId: notifications_preferences_retrieve
+      tags:
+      - notifications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preference'
+          description: ''
+    patch:
+      operationId: notifications_preferences_partial_update
+      tags:
+      - notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPreference'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPreference'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPreference'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preference'
+          description: ''
+  /api/v1/notifications/read-all/:
+    post:
+      operationId: notifications_read_all_create
+      tags:
+      - notifications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/notifications/unread-count/:
+    get:
+      operationId: notifications_unread_count_retrieve
+      tags:
+      - notifications
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/plans/:
+    get:
+      operationId: plans_retrieve
+      description: Public pricing page data. When pricing is switched off nothing
+        is offered for purchase.
+      tags:
+      - plans
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
           description: ''
   /api/v1/qr/:
     get:
@@ -598,6 +1698,93 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/QRCode'
+          description: ''
+  /api/v1/qr/{id}/activity/:
+    get:
+      operationId: qr_activity_list
+      description: Everything that happened to one QR code (owner only), including
+        staff/system actions.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - qr
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedActivityList'
+          description: ''
+  /api/v1/qr/{id}/analytics/:
+    get:
+      operationId: qr_analytics_retrieve
+      description: GET /qr/{id}/analytics/ - scans for one code (owner only).
+      parameters:
+      - in: query
+        name: days
+        schema:
+          type: integer
+        description: Last N days (default 30)
+      - in: query
+        name: export
+        schema:
+          type: string
+          enum:
+          - csv
+        description: Needs advanced analytics
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: granularity
+        schema:
+          type: string
+          enum:
+          - day
+          - month
+          - week
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: tz
+        schema:
+          type: string
+        description: IANA time zone, e.g. Africa/Lagos
+      tags:
+      - qr
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
           description: ''
   /api/v1/qr/{id}/disable/:
     post:
@@ -952,6 +2139,107 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/v1/security/analyze/:
+    post:
+      operationId: security_analyze_create
+      description: Security assessment of a web link. Public (rate-limited); results
+        are explained with evidence.
+      tags:
+      - security
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecurityAnalyzeRequest'
+        required: true
+      security:
+      - jwtAuthOptional: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/security/checks/{id}/:
+    get:
+      operationId: security_checks_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - security
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/security/providers/:
+    get:
+      operationId: security_providers_retrieve
+      description: Administrators only. Never returns credentials.
+      tags:
+      - security
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/usage/limits/:
+    get:
+      operationId: usage_limits_retrieve
+      description: Current usage per metered feature with limits and exact reset times.
+      tags:
+      - usage
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/usage/overview/:
+    get:
+      operationId: usage_overview_retrieve
+      description: Current usage per metered feature with limits and exact reset times.
+      tags:
+      - usage
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
 components:
   schemas:
     AbuseReportCreate:
@@ -979,11 +2267,123 @@ components:
       required:
       - category
       - description
+    Activity:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        action:
+          type: string
+          readOnly: true
+        label:
+          type: string
+          readOnly: true
+        object_type:
+          type: string
+          readOnly: true
+        object_id:
+          type: string
+          readOnly: true
+        actor:
+          type: string
+          description: Who did it, without exposing staff identities or other users.
+          readOnly: true
+        before_state:
+          readOnly: true
+          nullable: true
+        after_state:
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - action
+      - actor
+      - after_state
+      - before_state
+      - created_at
+      - id
+      - label
+      - object_id
+      - object_type
+    AdPreference:
+      type: object
+      properties:
+        personalized_ads:
+          type: boolean
+          nullable: true
+          description: null = no choice made
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - updated_at
+    Adjust:
+      type: object
+      properties:
+        user:
+          type: string
+          description: User email or id
+          maxLength: 254
+        kind:
+          $ref: '#/components/schemas/AdjustKindEnum'
+        amount:
+          type: integer
+          maximum: 1000000
+          minimum: 1
+          description: Always positive; a reversal removes this many
+        reason:
+          type: string
+          description: Internal note, required
+          maxLength: 300
+          minLength: 5
+        expires_in_days:
+          type: integer
+          maximum: 3650
+          minimum: 1
+        request_id:
+          type: string
+          format: uuid
+          description: Send the same id when retrying so the adjustment is applied
+            once
+      required:
+      - amount
+      - kind
+      - reason
+      - user
+    AdjustKindEnum:
+      enum:
+      - grant
+      - promotional
+      - reversal
+      type: string
+      description: |-
+        * `grant` - grant
+        * `promotional` - promotional
+        * `reversal` - reversal
     AnalyzeRequest:
       type: object
       properties:
         content:
           type: string
+        assess:
+          type: boolean
+          default: false
+          description: Also run the full security assessment (slower)
+        scanner_type:
+          allOf:
+          - $ref: '#/components/schemas/ScannerTypeEnum'
+          default: camera
+          description: |-
+            How the code was captured (for the owner's analytics)
+
+            * `camera` - camera
+            * `upload` - upload
       required:
       - content
     Campaign:
@@ -1015,6 +2415,12 @@ components:
       - name
       - qr_count
       - updated_at
+    Cancel:
+      type: object
+      properties:
+        immediately:
+          type: boolean
+          default: false
     CategoryEnum:
       enum:
       - suspicious_qr
@@ -1031,6 +2437,25 @@ components:
         * `unexpected_destination` - Unexpected destination change
         * `malicious_sticker` - Malicious QR sticker
         * `other` - Other abuse
+    Checkout:
+      type: object
+      properties:
+        plan:
+          type: string
+          pattern: ^[-a-zA-Z0-9_]+$
+        currency:
+          type: string
+          default: ''
+          maxLength: 3
+        provider:
+          type: string
+          default: ''
+          maxLength: 20
+        start_trial:
+          type: boolean
+          default: false
+      required:
+      - plan
     CodeModeEnum:
       enum:
       - static
@@ -1039,14 +2464,83 @@ components:
       description: |-
         * `static` - Static
         * `dynamic` - Dynamic
+    CreditHistory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        type:
+          type: string
+        amount:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          description: Positive for a credit, negative for a debit
+        balance_after:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        feature_key:
+          type: string
+          maxLength: 80
+        reason:
+          type: string
+          maxLength: 300
+        expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - balance_after
+      - created_at
+      - expires_at
+      - id
+      - type
     DecodeRequest:
       type: object
       properties:
         image:
           type: string
           format: uri
+        assess:
+          type: boolean
+          default: false
+          description: Also run the full security assessment (slower)
       required:
       - image
+    DomainAnalyzeRequest:
+      type: object
+      properties:
+        value:
+          type: string
+          maxLength: 2048
+        refresh:
+          type: boolean
+          default: false
+        use_credits:
+          type: boolean
+          default: false
+          description: 'Only when the allowance is used up: spend ScanSentry Credits
+            for this one lookup'
+        platform:
+          allOf:
+          - $ref: '#/components/schemas/PlatformEnum'
+          description: |-
+            Lets a 'limit reached' answer include the right rewarded-ad offers
+
+            * `web` - web
+            * `android` - android
+      required:
+      - value
     ErrorCorrectionEnum:
       enum:
       - L
@@ -1059,6 +2553,33 @@ components:
         * `M` - M
         * `Q` - Q
         * `H` - H
+    Event:
+      type: object
+      properties:
+        event:
+          $ref: '#/components/schemas/EventEnum'
+      required:
+      - event
+    EventEnum:
+      enum:
+      - ad_available
+      - cancelled
+      - client_reward_reported
+      - closed_early
+      - load_failed
+      - no_fill
+      - started
+      - timeout
+      type: string
+      description: |-
+        * `ad_available` - ad_available
+        * `cancelled` - cancelled
+        * `client_reward_reported` - client_reward_reported
+        * `closed_early` - closed_early
+        * `load_failed` - load_failed
+        * `no_fill` - no_fill
+        * `started` - started
+        * `timeout` - timeout
     GenericDetail:
       type: object
       properties:
@@ -1076,6 +2597,49 @@ components:
       required:
       - database
       - status
+    History:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        assessment_id:
+          type: string
+          format: uuid
+          readOnly: true
+        domain:
+          type: string
+        submitted_value:
+          type: string
+          maxLength: 300
+        served_from_cache:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        checked_at:
+          type: string
+          format: date-time
+        domain_health_score:
+          type: integer
+        registration_status:
+          type: string
+        hosting_status:
+          type: string
+        completion_status:
+          type: string
+      required:
+      - assessment_id
+      - checked_at
+      - completion_status
+      - created_at
+      - domain
+      - domain_health_score
+      - hosting_status
+      - id
+      - registration_status
+      - submitted_value
     LogoUpload:
       type: object
       properties:
@@ -1091,6 +2655,146 @@ components:
           type: string
       required:
       - refresh
+    Note:
+      type: object
+      properties:
+        note:
+          type: string
+          default: ''
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/NotificationKindEnum'
+          readOnly: true
+        severity:
+          allOf:
+          - $ref: '#/components/schemas/SeverityEnum'
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        body:
+          type: string
+          readOnly: true
+        data:
+          readOnly: true
+        read:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        read_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - body
+      - created_at
+      - data
+      - id
+      - kind
+      - read
+      - read_at
+      - severity
+      - title
+    NotificationKindEnum:
+      enum:
+      - security.destination_flagged
+      - qr.disabled
+      - qr.restored
+      - qr.destination_changed
+      - qr.expiring_soon
+      - abuse.report_received
+      - billing.subscription_activated
+      - billing.payment_failed
+      - billing.subscription_ending
+      type: string
+      description: |-
+        * `security.destination_flagged` - Destination flagged
+        * `qr.disabled` - QR code disabled
+        * `qr.restored` - QR code restored
+        * `qr.destination_changed` - Destination changed
+        * `qr.expiring_soon` - QR code expiring soon
+        * `abuse.report_received` - Abuse report received
+        * `billing.subscription_activated` - Subscription activated
+        * `billing.payment_failed` - Payment failed
+        * `billing.subscription_ending` - Subscription ending
+    Override:
+      type: object
+      properties:
+        user:
+          type: string
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/OverrideKindEnum'
+          default: feature
+        feature:
+          type: string
+        plan:
+          type: string
+          pattern: ^[-a-zA-Z0-9_]+$
+        enabled:
+          type: boolean
+          default: true
+        limit:
+          type: integer
+          minimum: 0
+          nullable: true
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        days:
+          type: integer
+          maximum: 3650
+          minimum: 1
+        note:
+          type: string
+          default: ''
+      required:
+      - user
+    OverrideKindEnum:
+      enum:
+      - feature
+      - promotion
+      - plan_trial
+      type: string
+      description: |-
+        * `feature` - feature
+        * `promotion` - promotion
+        * `plan_trial` - plan_trial
+    PaginatedActivityList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Activity'
     PaginatedCampaignList:
       type: object
       required:
@@ -1114,6 +2818,75 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Campaign'
+    PaginatedCreditHistoryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreditHistory'
+    PaginatedHistoryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/History'
+    PaginatedNotificationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
     PaginatedQRCodeList:
       type: object
       required:
@@ -1160,6 +2933,52 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/QRDestinationHistory'
+    PaginatedTransactionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+    PaginatedWebhookEventList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebhookEvent'
     PasswordResetConfirm:
       type: object
       properties:
@@ -1182,6 +3001,17 @@ components:
           format: email
       required:
       - email
+    PatchedAdPreference:
+      type: object
+      properties:
+        personalized_ads:
+          type: boolean
+          nullable: true
+          description: null = no choice made
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
     PatchedCampaign:
       type: object
       properties:
@@ -1201,6 +3031,21 @@ components:
           type: string
           format: date-time
           readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedPreference:
+      type: object
+      properties:
+        email_security_alerts:
+          type: boolean
+        email_qr_status:
+          type: boolean
+        email_abuse_reports:
+          type: boolean
+        email_billing:
+          type: boolean
         updated_at:
           type: string
           format: date-time
@@ -1263,6 +3108,43 @@ components:
           format: date-time
           readOnly: true
           nullable: true
+    PlatformEnum:
+      enum:
+      - web
+      - android
+      type: string
+      description: |-
+        * `web` - web
+        * `android` - android
+    Preference:
+      type: object
+      properties:
+        email_security_alerts:
+          type: boolean
+        email_qr_status:
+          type: boolean
+        email_abuse_reports:
+          type: boolean
+        email_billing:
+          type: boolean
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - updated_at
+    ProcessingStatusEnum:
+      enum:
+      - received
+      - processed
+      - ignored
+      - failed
+      type: string
+      description: |-
+        * `received` - Received
+        * `processed` - Processed
+        * `ignored` - Ignored
+        * `failed` - Failed
     QRCode:
       type: object
       properties:
@@ -1286,7 +3168,7 @@ components:
           readOnly: true
         status:
           allOf:
-          - $ref: '#/components/schemas/StatusEnum'
+          - $ref: '#/components/schemas/QRCodeStatusEnum'
           readOnly: true
         effective_status:
           type: string
@@ -1392,6 +3274,16 @@ components:
       - data
       - name
       - qr_type
+    QRCodeStatusEnum:
+      enum:
+      - active
+      - paused
+      - disabled
+      type: string
+      description: |-
+        * `active` - Active
+        * `paused` - Paused
+        * `disabled` - Disabled
     QRDestinationHistory:
       type: object
       properties:
@@ -1481,16 +3373,51 @@ components:
       required:
       - email
       - password
-    StatusEnum:
+    ScannerTypeEnum:
       enum:
-      - active
-      - paused
-      - disabled
+      - camera
+      - upload
       type: string
       description: |-
-        * `active` - Active
-        * `paused` - Paused
-        * `disabled` - Disabled
+        * `camera` - camera
+        * `upload` - upload
+    SecurityAnalyzeRequest:
+      type: object
+      properties:
+        url:
+          type: string
+          maxLength: 2048
+        trace:
+          type: boolean
+          default: true
+          description: Follow redirects of known URL shorteners
+        ai:
+          type: boolean
+          default: false
+          description: Request an AI-worded explanation (signed-in, if enabled)
+      required:
+      - url
+    SessionCreate:
+      type: object
+      properties:
+        offer:
+          type: string
+          format: uuid
+        platform:
+          $ref: '#/components/schemas/PlatformEnum'
+      required:
+      - offer
+      - platform
+    SeverityEnum:
+      enum:
+      - info
+      - warning
+      - critical
+      type: string
+      description: |-
+        * `info` - Info
+        * `warning` - Warning
+        * `critical` - Critical
     Style:
       type: object
       properties:
@@ -1509,6 +3436,20 @@ components:
         frame_text:
           type: string
           maxLength: 30
+    SubscriptionAction:
+      type: object
+      properties:
+        user:
+          type: string
+        days:
+          type: integer
+          maximum: 3650
+          minimum: 1
+        note:
+          type: string
+          default: ''
+      required:
+      - user
     TokenObtainPair:
       type: object
       properties:
@@ -1540,6 +3481,75 @@ components:
       required:
       - access
       - refresh
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        plan:
+          type: string
+          readOnly: true
+        provider:
+          type: string
+          readOnly: true
+        provider_reference:
+          type: string
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        currency:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/TransactionStatusEnum'
+          readOnly: true
+        payment_method:
+          type: string
+          readOnly: true
+        failure_reason:
+          type: string
+          readOnly: true
+        paid_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - currency
+      - failure_reason
+      - id
+      - paid_at
+      - payment_method
+      - plan
+      - provider
+      - provider_reference
+      - status
+    TransactionStatusEnum:
+      enum:
+      - pending
+      - success
+      - failed
+      - abandoned
+      - refunded
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `success` - Succeeded
+        * `failed` - Failed
+        * `abandoned` - Abandoned
+        * `refunded` - Refunded
     User:
       type: object
       properties:
@@ -1581,6 +3591,14 @@ components:
       - id
       - is_staff
       - updated_at
+    Verify:
+      type: object
+      properties:
+        reference:
+          type: string
+          maxLength: 120
+      required:
+      - reference
     VerifyEmail:
       type: object
       properties:
@@ -1588,6 +3606,50 @@ components:
           type: string
       required:
       - token
+    WebhookEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        provider:
+          type: string
+          readOnly: true
+        provider_event_id:
+          type: string
+          readOnly: true
+        event_type:
+          type: string
+          readOnly: true
+        processing_status:
+          allOf:
+          - $ref: '#/components/schemas/ProcessingStatusEnum'
+          readOnly: true
+        attempts:
+          type: integer
+          readOnly: true
+        error_message:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        processed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - attempts
+      - created_at
+      - error_message
+      - event_type
+      - id
+      - processed_at
+      - processing_status
+      - provider
+      - provider_event_id
   securitySchemes:
     jwtAuth:
       type: http

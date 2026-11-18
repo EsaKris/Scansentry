@@ -34,6 +34,14 @@ INSTALLED_APPS = [
     "apps.qr_codes",
     "apps.scanner",
     "apps.abuse_reports",
+    "apps.domain_intel",
+    "apps.threat_intel",
+    "apps.security_engine",
+    "apps.analytics",
+    "apps.notifications",
+    "apps.billing",
+    "apps.advertising",
+    "apps.credits",
 ]
 
 MIDDLEWARE = [
@@ -133,6 +141,13 @@ REST_FRAMEWORK = {
         "scanner_decode": "30/min",
         "scanner_analyze": "60/min",
         "abuse_report": "5/hour",
+        "domain_anon": "20/hour",
+        "domain_user": "100/hour",
+        "security_anon": "30/hour",
+        "security_user": "200/hour",
+        "billing_checkout": "20/hour",
+        "reward_session": "30/hour",
+        "reward_callback": "1200/min",
     },
 }
 
@@ -144,12 +159,12 @@ SPECTACULAR_SETTINGS = {
 }
 
 # --- CORS ---------------------------------------------------------------------
-CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "http://localhost:5173")
+CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", "https://scansentry.vercel.app")
 
 # --- Email --------------------------------------------------------------------
 EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "ScanSentry <no-reply@scansentry.local>")
-FRONTEND_URL = env("FRONTEND_URL", "http://localhost:5173")
+FRONTEND_URL = env("FRONTEND_URL", "https://scansentry.vercel.app")
 
 # --- i18n / static / media ------------------------------------------------------
 LANGUAGE_CODE = "en-us"
@@ -171,7 +186,7 @@ LOGGING = {
 
 # --- QR codes -------------------------------------------------------------------
 # Base URL of the public redirect/verification domain used inside dynamic QR codes.
-REDIRECT_BASE_URL = env("REDIRECT_BASE_URL", "http://localhost:8000").rstrip("/")
+REDIRECT_BASE_URL = env("REDIRECT_BASE_URL", "https://scansentry.onrender.com").rstrip("/")
 QR_MIN_CONTRAST_RATIO = float(env("QR_MIN_CONTRAST_RATIO", "4.0"))
 QR_MAX_LOGO_RATIO = float(env("QR_MAX_LOGO_RATIO", "0.2"))
 QR_MAX_LOGO_BYTES = env_int("QR_MAX_LOGO_BYTES", 1_000_000)
@@ -183,3 +198,40 @@ SCANNER_MAX_IMAGE_PIXELS = env_int("SCANNER_MAX_IMAGE_PIXELS", 20_000_000)
 SCANNER_MAX_CONTENT_CHARS = env_int("SCANNER_MAX_CONTENT_CHARS", 4096)
 ABUSE_EVIDENCE_MAX_BYTES = env_int("ABUSE_EVIDENCE_MAX_BYTES", 2_000_000)
 ABUSE_DEDUPE_HOURS = env_int("ABUSE_DEDUPE_HOURS", 24)
+
+# --- Domain intelligence / outbound network safety -----------------------------------
+import json as _json
+
+DOMAIN_CHECK_TIMEOUT = env_int("DOMAIN_CHECK_TIMEOUT", 20)              # whole assessment, seconds
+NETGUARD_CONNECT_TIMEOUT = float(env("NETGUARD_CONNECT_TIMEOUT", "5"))
+NETGUARD_TOTAL_TIMEOUT = float(env("NETGUARD_TOTAL_TIMEOUT", "10"))     # one fetch incl. redirects
+NETGUARD_MAX_REDIRECTS = env_int("NETGUARD_MAX_REDIRECTS", 5)
+NETGUARD_MAX_BODY_BYTES = env_int("NETGUARD_MAX_BODY_BYTES", 65536)
+DNS_NAMESERVERS = env_list("DNS_NAMESERVERS", "")                       # empty = system resolver
+DNS_TIMEOUT = float(env("DNS_TIMEOUT", "4"))
+RDAP_BOOTSTRAP_URL = env("RDAP_BOOTSTRAP_URL", "https://data.iana.org/rdap/dns.json")
+RDAP_TIMEOUT = float(env("RDAP_TIMEOUT", "8"))
+# JSON, e.g. {"fallback_base": "https://rdap.example.net"}. No fallback by default: verify a
+# provider's terms of service before using it commercially.
+RDAP_PROVIDER_CONFIG = _json.loads(env("RDAP_PROVIDER_CONFIG", "") or "{}")
+
+# --- AI explanations (optional) -------------------------------------------------------------
+# AI only EXPLAINS deterministic findings. Leave AI_PROVIDER empty to use rule-based explanations only.
+AI_PROVIDER = env("AI_PROVIDER", "")                         # "anthropic" or ""
+AI_API_KEY = env("AI_API_KEY", "")
+AI_MODEL = env("AI_MODEL", "claude-sonnet-5-5")              # verify the current model name in Anthropic's docs
+AI_TIMEOUT = float(env("AI_TIMEOUT", "10"))
+
+# --- Analytics (privacy-conscious) -----------------------------------------------------------
+# Country/region are recorded ONLY when your CDN/reverse proxy supplies them in a header (e.g. Cloudflare's
+# CF-IPCountry). Empty = off. The proxy must strip these headers from client requests so they cannot be spoofed.
+GEO_COUNTRY_HEADER = env("GEO_COUNTRY_HEADER", "")
+GEO_REGION_HEADER = env("GEO_REGION_HEADER", "")
+ANALYTICS_DEDUPE_SECONDS = env_int("ANALYTICS_DEDUPE_SECONDS", 30)
+
+# --- Billing ---------------------------------------------------------------------------------
+# Provider credentials come ONLY from the environment (never the database, never the frontend).
+PAYSTACK_SECRET_KEY = env("PAYSTACK_SECRET_KEY", "")
+FLUTTERWAVE_SECRET_KEY = env("FLUTTERWAVE_SECRET_KEY", "")
+FLUTTERWAVE_WEBHOOK_HASH = env("FLUTTERWAVE_WEBHOOK_HASH", "")   # the "secret hash" you set in the Flutterwave dashboard
+BILLING_RETURN_URL = env("BILLING_RETURN_URL", "")               # default: {FRONTEND_URL}/billing/complete

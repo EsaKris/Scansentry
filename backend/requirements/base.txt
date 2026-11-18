@@ -12,3 +12,7 @@ python-dotenv>=1.0
 gunicorn>=23.0
 qrcode[pil]>=8.0
 opencv-python-headless>=4.10
+dnspython>=2.6
+cryptography>=43
+idna>=3.7
+publicsuffixlist>=1.0

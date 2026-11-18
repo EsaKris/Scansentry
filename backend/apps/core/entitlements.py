@@ -1,15 +1,12 @@
 """Entitlement checks used by feature code.
 
-Milestone 2 placeholder: values come from the `default_entitlements` AppConfiguration row
-(a JSON object such as {"qr.dynamic.active_limit": 5, "qr.svg_export": true}).
-Milestone 6 replaces the lookup with plan/subscription-based entitlements while keeping
-these function signatures, so feature code does not change. Missing keys mean
-"allowed / unlimited" until an administrator configures them.
+Entitlements are resolved by apps.billing.entitlements from the user's effective plan, the feature
+catalogue, the global baseline (`default_entitlements`) and administrative overrides. These functions
+keep the signatures feature code has always used. Keys nobody configured mean "allowed / unlimited".
 """
 from rest_framework import status
 from rest_framework.exceptions import APIException
 
-from .config import get_config
 
 
 class FeatureNotAvailable(APIException):
@@ -24,13 +21,13 @@ class FeatureLimitReached(APIException):
     default_detail = "You have reached the limit for this feature."
 
 
-def _defaults() -> dict:
-    value = get_config("default_entitlements", {})
-    return value if isinstance(value, dict) else {}
+def _entitlement(user, key: str):
+    from apps.billing.entitlements import resolve   # local import: billing depends on core
+    return resolve(user, key)
 
 
 def feature_enabled(user, key: str) -> bool:
-    return bool(_defaults().get(key, True))
+    return _entitlement(user, key).enabled
 
 
 def require_feature(user, key: str) -> None:
@@ -39,6 +36,6 @@ def require_feature(user, key: str) -> None:
 
 
 def get_limit(user, key: str):
-    """Return an int limit, or None when unlimited/unconfigured."""
-    value = _defaults().get(key)
-    return None if value is None else int(value)
+    """Return an int limit (0 when the feature is off for this user), or None when unlimited."""
+    e = _entitlement(user, key)
+    return 0 if not e.enabled else e.limit

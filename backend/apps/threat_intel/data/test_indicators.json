@@ -1,0 +1,9 @@
+{
+  "_comment": "Controlled TEST data only. These names live under example.com (reserved for documentation) and are matched as text, never visited. The test_fixture provider is disabled by default and must stay disabled in production.",
+  "indicators": [
+    {"host": "ss-harmless-test.example.com",   "verdict": "harmless"},
+    {"host": "ss-suspicious-test.example.com", "verdict": "suspicious", "category": "suspicious", "severity": "medium", "reference": "fixture-sus-001"},
+    {"host": "ss-malware-test.example.com",    "verdict": "malicious",  "category": "malware",    "severity": "critical", "reference": "fixture-mal-001"},
+    {"host": "ss-phish-test.example.com",      "verdict": "malicious",  "category": "phishing",   "severity": "critical", "reference": "fixture-phi-001"}
+  ]
+}
