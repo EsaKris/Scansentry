@@ -67,7 +67,7 @@ export default function QRLibrary() {
   // Handle Download PNG
   const handleDownload = (id: string, name: string) => {
     // We use a direct link to her backend for the image download
-    const token = localStorage.getItem('access_token');
+    // const token = localStorage.getItem('access_token');
     const downloadUrl = `${import.meta.env.VITE_API_URL}/qr/${id}/image/png/?download=true`;
     
     // Create a temporary link element to trigger the download
