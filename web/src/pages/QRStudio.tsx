@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { QrCode, Link as LinkIcon, Palette, Download, Save, AlertCircle } from 'lucide-react';
+import { QrCode, Link as LinkIcon, Palette, Save, AlertCircle } from 'lucide-react';
 import api from '../services/api';
 
 export default function QRStudio() {
