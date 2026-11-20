@@ -1,0 +1,5 @@
+# Host at https://<your-site>/ads.txt  (root of the domain). Needed for AdSense / Ad Manager so advertisers can verify you.
+# Replace pub-0000000000000000 with YOUR publisher id (shown in AdSense). The last field is Google's certification id and is always f08c47fec0942fa0.
+google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
+
+# For the Android app (AdMob): host app-ads.txt at the root of the DEVELOPER WEBSITE listed on your Google Play store listing, same line format.

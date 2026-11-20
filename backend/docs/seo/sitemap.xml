@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generate this at build time from your list of public pages. Only INDEXABLE pages belong here: never /r/*, scan results or signed-in pages.
+     Use real last-modified dates (or omit lastmod): do not fake them. Max 50,000 URLs / 50 MB per file. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://scansentry.example/</loc><lastmod>2026-11-17</lastmod></url>
+  <url><loc>https://scansentry.example/qr-code-scanner</loc></url>
+  <url><loc>https://scansentry.example/domain-checker</loc></url>
+  <url><loc>https://scansentry.example/qr-code-generator</loc></url>
+  <url><loc>https://scansentry.example/features</loc></url>
+  <url><loc>https://scansentry.example/how-it-works</loc></url>
+  <url><loc>https://scansentry.example/security-methodology</loc></url>
+  <url><loc>https://scansentry.example/pricing</loc></url>
+  <url><loc>https://scansentry.example/about</loc></url>
+  <url><loc>https://scansentry.example/contact</loc></url>
+  <url><loc>https://scansentry.example/privacy</loc></url>
+  <url><loc>https://scansentry.example/terms</loc></url>
+  <url><loc>https://scansentry.example/learn/what-is-quishing</loc></url>
+</urlset>

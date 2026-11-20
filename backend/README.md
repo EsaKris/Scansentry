@@ -33,7 +33,7 @@ Django 5.2 + Django REST Framework API shared by the web and Android clients.
   audited admin adjustments and reporting
 - **Release hardening (Milestone 9):** production settings that fail closed, shared Redis rate limits, structured JSON logs with request ids, privacy-scrubbed Sentry,
   private object storage, admin sign-in throttle, non-root container, smoke test, backup/restore scripts, RLS script, deployment/operations docs, PostgreSQL + concurrency testing
-- 1130 automated tests (1124 on SQLite + 6 PostgreSQL-only concurrency tests), run on both databases (generated codes are decoded back; the SSRF guard, security, privacy, isolation, billing and advertising
+- 1194 automated tests (1188 on SQLite + 6 PostgreSQL-only concurrency tests), run on both databases (generated codes are decoded back; the SSRF guard, security, privacy, isolation, billing and advertising
   rules are tested against a fake internet with real TLS handshakes and simulated payment providers, and mutation-checked)
 
 ## Quick start (local, SQLite)
@@ -533,7 +533,16 @@ switch `rewarded_ads_test_mode` off. The callback URL must be reachable by Googl
 | `docs/MVP_SCOPE.md` | what is outside the MVP and what remains |
 | `docs/DEMO_AND_SUBMISSION.md` | what can be demonstrated today, and the submission checklist |
 | `docs/TESTING.md` | how to run the tests (SQLite and PostgreSQL), static checks, mutation checking |
-Scripts: `scripts/smoke_test.py <url>` (post-deploy checks), `scripts/backup_db.sh`, `scripts/restore_drill.sh`, `scripts/enable_rls.sql`; `deploy/scheduler.sh`; `docker-compose.prod.yml`; `ci/github-actions-backend.yml`.
+| `docs/SEO_AND_ANALYTICS.md` + `docs/seo/` | getting found on Google: rendering decision, pages and keywords, Search Console, analytics/consent, starter files (robots, sitemap, head template, consent snippet, ads.txt) |
+Scripts: `scripts/seo_check.py <site url>` (audits the public WEBSITE), `scripts/smoke_test.py <url>` (post-deploy checks), `scripts/backup_db.sh`, `scripts/restore_drill.sh`, `scripts/enable_rls.sql`; `deploy/scheduler.sh`; `docker-compose.prod.yml`; `ci/github-actions-backend.yml`.
+
+## Account data rights and exports
+| Method | Path | Notes |
+|---|---|---|
+| GET / POST / DELETE | /api/v1/auth/me/deletion-request/ | status, request, cancel. Erasure after a grace period (`account.deletion_grace_days`, default 14) by `process_account_deletions` (daily) |
+| POST | /api/v1/auth/me/export/ | `{"password"}` -> the user's own data as a JSON download; 5/day; audited |
+| GET | /api/v1/domains/assessments/{id}/export/?type=csv\|pdf | signed-in, needs the `domain.reports.export` entitlement (enforced on the backend); CSV cells are protected against spreadsheet formula injection |
+Erasure anonymises the account (a tombstone keeps payment/audit records without personal data), deletes the person's QR codes, files and records, never cuts short a paid period, and never erases staff or organisation owners with members automatically.
 
 ## Settings modules
 `config.settings.local` (dev), `.test` (pytest, forced by pytest.ini), `.production`

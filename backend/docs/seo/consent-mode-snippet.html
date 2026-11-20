@@ -1,0 +1,25 @@
+<!-- Google Analytics 4 with Consent Mode v2: analytics runs ONLY after the visitor agrees, and ONLY on marketing pages.
+     NEVER include this on: the scanner, scan results, QR verification, domain reports, the signed-in app, or any security warning.
+     Replace G-XXXXXXXXXX. Wire your consent banner so that accepting calls gtag('consent','update',{...}).
+     Prefer a Google-certified consent management platform (required for personalised ads in the EEA/UK). -->
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  // 1) Default: everything denied until the visitor chooses.
+  gtag('consent', 'default', {
+    ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied',
+    wait_for_update: 500
+  });
+  gtag('set', 'url_passthrough', false);
+  gtag('set', 'ads_data_redaction', true);
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+  gtag('js', new Date());
+  // send_page_view false so you can control it; never send personal data, emails, or the URLs people scan.
+  gtag('config', 'G-XXXXXXXXXX', { anonymize_ip: true, send_page_view: true, allow_google_signals: false });
+
+  // 2) Call this from your banner when the visitor accepts analytics:
+  function acceptAnalytics() { gtag('consent', 'update', { analytics_storage: 'granted' }); }
+  // Advertising consent stays 'denied' unless they also accept ads: gtag('consent','update',{ad_storage:'granted',ad_user_data:'granted',ad_personalization:'granted'})
+</script>

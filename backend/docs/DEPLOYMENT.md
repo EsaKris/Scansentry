@@ -53,7 +53,7 @@ Behind a TLS-terminating proxy, the proxy must send `X-Forwarded-Proto`. If it c
 
 ## 5. The scheduler (one instance only)
 Run `sh deploy/scheduler.sh` as a **separate always-on service** from the same image, or recreate its schedule with your host's cron:
-hourly `process_subscriptions`, `recheck_destinations --limit 200`, `process_credits`; daily `purge_old_data`, `send_expiry_reminders --days 3`.
+hourly `process_subscriptions`, `recheck_destinations --limit 200`, `process_credits`; daily `purge_old_data`, `send_expiry_reminders --days 3`, `process_account_deletions`.
 Never run two schedulers. Without it: trials and grace periods do not end, expired credits are only removed when touched, retention is not enforced and malicious-destination re-checks stop.
 
 ## 6. First-time setup

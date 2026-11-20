@@ -643,8 +643,26 @@ paths:
                 $ref: '#/components/schemas/User'
           description: ''
   /api/v1/auth/me/deletion-request/:
+    get:
+      operationId: auth_me_deletion_request_retrieve
+      description: Request, inspect or cancel deletion of your account. Erasure happens
+        after a grace period (default 14 days, configurable) and cannot be undone.
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
     post:
       operationId: auth_me_deletion_request_create
+      description: Request, inspect or cancel deletion of your account. Erasure happens
+        after a grace period (default 14 days, configurable) and cannot be undone.
       tags:
       - auth
       security:
@@ -654,7 +672,52 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GenericDetail'
+                type: object
+                additionalProperties: {}
+          description: ''
+    delete:
+      operationId: auth_me_deletion_request_destroy
+      description: Cancel a pending request (possible until the account is erased).
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/auth/me/export/:
+    post:
+      operationId: auth_me_export_create
+      description: Download everything we hold about you as JSON. Needs your password
+        again (a stolen session must not be enough to take your data).
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataExport'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DataExport'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DataExport'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
           description: ''
   /api/v1/auth/password-reset/:
     post:
@@ -1324,6 +1387,38 @@ paths:
               schema:
                 type: object
                 additionalProperties: {}
+          description: ''
+  /api/v1/domains/assessments/{id}/export/:
+    get:
+      operationId: domains_assessments_export_retrieve
+      description: Download an assessment as CSV or PDF. Needs a signed-in user whose
+        plan includes `domain.reports.export` (enforced here, not just in the app).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: type
+        schema:
+          type: string
+          enum:
+          - csv
+          - pdf
+        required: true
+      tags:
+      - domains
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
           description: ''
   /api/v1/domains/history/:
     get:
@@ -2505,6 +2600,14 @@ components:
       - expires_at
       - id
       - type
+    DataExport:
+      type: object
+      properties:
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - password
     DecodeRequest:
       type: object
       properties:

@@ -1,4 +1,5 @@
-from drf_spectacular.utils import OpenApiTypes, extend_schema
+from django.http import HttpResponse
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.generics import ListAPIView, get_object_or_404
@@ -9,10 +10,11 @@ from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 
 from apps.core.authentication import OptionalJWTAuthentication
+from apps.core.entitlements import require_feature
 from apps.credits import limits as credit_limits
 from apps.credits import rewarded as credit_rewarded
 
-from . import service
+from . import export, service
 from .models import DomainAssessment, DomainLookup
 from .normalize import InvalidDomainInput, normalize_domain_input
 from .presenters import present
@@ -85,6 +87,28 @@ class AssessmentDetailView(APIView):
     def get(self, request, pk):
         a = get_object_or_404(DomainAssessment, pk=pk)
         return Response(present(a, cached=False))
+
+
+class AssessmentExportView(APIView):
+    """Download an assessment as CSV or PDF. Needs a signed-in user whose plan includes `domain.reports.export` (enforced here, not just in the app)."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(parameters=[OpenApiParameter("type", OpenApiTypes.STR, enum=["csv", "pdf"], required=True)], responses={200: OpenApiTypes.BINARY})
+    def get(self, request, pk):
+        kind = (request.query_params.get("type") or "").lower()
+        if kind not in ("csv", "pdf"):
+            raise ValidationError({"type": "Use csv or pdf."})
+        require_feature(request.user, "domain.reports.export")
+        a = get_object_or_404(DomainAssessment, pk=pk)
+        report = present(a, cached=False)
+        body = export.to_csv(report) if kind == "csv" else export.to_pdf(report)
+        safe = "".join(c for c in a.domain if c.isalnum() or c in ".-")[:80] or "domain"
+        resp = HttpResponse(body, content_type="text/csv; charset=utf-8" if kind == "csv" else "application/pdf")
+        resp["Content-Disposition"] = f'attachment; filename="scansentry-{safe}.{kind}"'
+        resp["Cache-Control"] = "private, no-store"
+        resp["X-Content-Type-Options"] = "nosniff"
+        return resp
 
 
 class HistorySerializer(serializers.ModelSerializer):

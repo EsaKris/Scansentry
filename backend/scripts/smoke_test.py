@@ -62,6 +62,9 @@ def main():
         check("HSTS header present", "max-age" in h.get("strict-transport-security", ""))
     check("X-Content-Type-Options: nosniff", h.get("x-content-type-options") == "nosniff")
     check("framing is denied", h.get("x-frame-options", "").upper() == "DENY")
+    check("the API host asks search engines not to index it", "noindex" in h.get("x-robots-tag", ""))
+    s_, _, _, robots = call(base, "/robots.txt")
+    check("robots.txt disallows everything on the API host", s_ == 200 and "Disallow: /" in robots)
 
     s, _, j, _ = call(base, "/api/v1/scanner/analyze/", "POST", {"content": "https://example.com/menu"})
     check("public scanner works without an account", s == 200 and isinstance(j, dict) and j.get("kind") == "url", str(s))

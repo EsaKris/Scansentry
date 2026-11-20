@@ -1,0 +1,59 @@
+<!-- Per-page <head> for the public website. Each page needs its OWN title, description and canonical URL.
+     This must be present in the HTML the server sends (prerendered), not added later by JavaScript. -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QR Code Scanner: See Where a QR Code Leads | ScanSentry</title>                        <!-- ~30-60 chars, page topic first, brand last -->
+  <meta name="description" content="Scan any QR code and see the destination, the website's age and warning signs before you open it. No account needed.">  <!-- 70-160 chars; written for people: it is your search-result pitch -->
+  <link rel="canonical" href="https://scansentry.example/qr-code-scanner">                    <!-- exactly one canonical, absolute, https, no tracking params -->
+  <meta name="robots" content="index, follow, max-image-preview:large">
+
+  <!-- Social previews (also used by messaging apps) -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="ScanSentry">
+  <meta property="og:title" content="QR Code Scanner: See Where a QR Code Leads">
+  <meta property="og:description" content="Check a QR code's destination and warning signs before you open it.">
+  <meta property="og:url" content="https://scansentry.example/qr-code-scanner">
+  <meta property="og:image" content="https://scansentry.example/og/qr-code-scanner.png">      <!-- 1200x630 -->
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" href="/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="theme-color" content="#0B1F3A">
+
+  <!-- Structured data (JSON-LD). Must match what is visible on the page. Validate at https://validator.schema.org and Google's Rich Results Test.
+       Markup helps Google understand the page; it does NOT guarantee rich results or rankings. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "ScanSentry QR Scanner",
+    "url": "https://scansentry.example/qr-code-scanner",
+    "applicationCategory": "SecurityApplication",
+    "operatingSystem": "Any (web browser)",
+    "description": "Scan a QR code and see where it leads, with domain intelligence and warnings, before you open it.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "publisher": { "@id": "https://scansentry.example/#organization" }
+  }
+  </script>
+  <!-- Put this one on the home page only -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "Organization", "@id": "https://scansentry.example/#organization", "name": "ScanSentry", "url": "https://scansentry.example/",
+        "logo": "https://scansentry.example/logo-512.png", "sameAs": [] },
+      { "@type": "WebSite", "@id": "https://scansentry.example/#website", "url": "https://scansentry.example/", "name": "ScanSentry",
+        "publisher": { "@id": "https://scansentry.example/#organization" } }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <!-- Exactly ONE <h1> per page, matching the page's topic. Real headings (h2, h3), real text in the HTML, descriptive alt on every meaningful image. -->
+</body>
+</html>
+
+<!-- PAGES THAT MUST NOT BE INDEXED (scan results, /r/<token> verification pages, signed-in pages, per-domain report pages) need, in the HTML head:
+       <meta name="robots" content="noindex, nofollow">
+     AND the response header  X-Robots-Tag: noindex, nofollow  (set it in your host's headers config). -->

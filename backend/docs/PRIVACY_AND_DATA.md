@@ -5,7 +5,7 @@
 ## What the backend stores
 | Data | Why | Retention (default, admin-configurable) |
 |---|---|---|
-| Account: email, display name, password hash, verified flag | sign-in, alerts | until deletion (see gap below) |
+| Account: email, display name, password hash, verified flag | sign-in, alerts | until the user requests deletion; erased after a 14-day grace period (configurable) |
 | QR codes: name, description, type, destination/payload, generated image, owner | the service | until the owner deletes them |
 | Destination-change history | accountability for dynamic codes | with the QR code |
 | Scan events (time, device/browser *category*, approximate country/region if a CDN header is configured, security status) | owner analytics | 395 days |
@@ -39,8 +39,14 @@
 - Credits have no cash value. Rewarded ads are optional.
 - Analytics never store IP addresses, user agents or URLs, and do not identify individuals.
 
+## Your rights tools (built)
+- **Access / portability:** `POST /api/v1/auth/me/export/` returns the user's own data as JSON (password required, rate-limited, audited). It excludes secrets, other people's data and staff-internal notes. Anonymous scan analytics are not tied to a person and are not included.
+- **Erasure:** `POST /api/v1/auth/me/deletion-request/`, cancellable during a grace period, then `process_account_deletions` anonymises the account: QR codes, notifications, history, credits, preferences and uploaded files are deleted; payment and audit records are kept without personal details; abuse reports are kept for moderation without their author.
+  A test scans every column of every table to confirm the person's email and name are gone, and another fails if a new model that references users is added without a deletion decision.
+- **Backups** still hold erased data until they expire (`KEEP_DAYS`, default 14): say so in the policy.
+- **Not covered:** legal retention periods for payment/tax records, which you must set with advice; rectification beyond editing the profile; objection/restriction requests (handle manually).
+
 ## Known gaps to close before launch (legal exposure)
-- **Account-deletion requests are recorded but not processed automatically, and there is no data-export endpoint.** Handle manually and document it, or build it (see `MVP_SCOPE.md`).
 - Email change and session/device management are not implemented.
 - The Data safety form must reflect ads (identifiers, interaction data) if ads are enabled, payments, and account data.
 - Confirm your obligations for ad consent (e.g. GDPR/ePrivacy in the EU/UK, other regions) and payments in your launch countries.

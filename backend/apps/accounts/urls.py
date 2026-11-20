@@ -13,4 +13,5 @@ urlpatterns = [
          name="auth-password-reset-confirm"),
     path("me/", views.MeView.as_view(), name="auth-me"),
     path("me/deletion-request/", views.DeletionRequestView.as_view(), name="auth-deletion-request"),
+    path("me/export/", views.DataExportView.as_view(), name="auth-data-export"),
 ]

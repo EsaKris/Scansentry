@@ -6,11 +6,12 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
-from drf_spectacular.utils import extend_schema
-from rest_framework import generics, status
+from drf_spectacular.utils import OpenApiTypes, extend_schema
+from rest_framework import generics, serializers, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.throttling import ScopedRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -18,7 +19,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from apps.audit.services import record_audit
 
-from . import emails
+from . import deletion, emails
+from .export import export_user_data
 from .serializers import (
     GenericDetailSerializer, LogoutSerializer, PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer, RegisterSerializer, UserSerializer,
@@ -99,19 +101,62 @@ class MeView(generics.RetrieveUpdateAPIView):
 
 
 class DeletionRequestView(APIView):
+    """Request, inspect or cancel deletion of your account. Erasure happens after a grace period (default 14 days, configurable) and cannot be undone."""
+
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(request=None, responses={202: GenericDetailSerializer})
+    def _state(self, user):
+        when = deletion.scheduled_for(user)
+        return {"requested": user.deletion_requested_at is not None, "requested_at": user.deletion_requested_at, "scheduled_for": when,
+                "grace_days": deletion.grace_days(), "can_cancel": user.deletion_requested_at is not None,
+                "notes": ["Your QR codes (and the printed codes that point at them) stop working when the account is erased.",
+                          "A paid period you have already bought is honoured: renewal stops and erasure follows when it ends.",
+                          "Payment and tax records are kept without your personal details, as the law may require."]}
+
+    @extend_schema(responses={200: OpenApiTypes.OBJECT})
+    def get(self, request):
+        return Response(self._state(request.user))
+
+    @extend_schema(request=None, responses={202: OpenApiTypes.OBJECT})
     def post(self, request):
-        user = request.user
-        if user.deletion_requested_at is None:
-            user.deletion_requested_at = timezone.now()
-            user.save(update_fields=["deletion_requested_at", "updated_at"])
-            record_audit(actor=user, action="account.deletion_requested", obj=user)
-        return Response(
-            {"detail": "Your account deletion request has been recorded."},
-            status=status.HTTP_202_ACCEPTED,
-        )
+        deletion.request_deletion(request.user)
+        request.user.refresh_from_db()
+        return Response({"detail": "Your account deletion request has been recorded.", **self._state(request.user)}, status=status.HTTP_202_ACCEPTED)
+
+    @extend_schema(responses={200: OpenApiTypes.OBJECT})
+    def delete(self, request):
+        """Cancel a pending request (possible until the account is erased)."""
+        deletion.cancel_deletion(request.user)
+        request.user.refresh_from_db()
+        return Response({"detail": "Your account deletion request was cancelled.", **self._state(request.user)})
+
+
+class DataExportSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+
+class DataExportThrottle(UserRateThrottle):
+    scope = "data_export"
+
+
+class DataExportView(APIView):
+    """Download everything we hold about you as JSON. Needs your password again (a stolen session must not be enough to take your data)."""
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [DataExportThrottle]
+
+    @extend_schema(request=DataExportSerializer, responses={200: OpenApiTypes.OBJECT})
+    def post(self, request):
+        ser = DataExportSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        if not request.user.check_password(ser.validated_data["password"]):
+            raise PermissionDenied("The password is not correct.")
+        data = export_user_data(request.user)
+        record_audit(actor=request.user, action="account.data_exported", obj=request.user)
+        resp = Response(data)
+        resp["Content-Disposition"] = 'attachment; filename="scansentry-data-export.json"'
+        resp["Cache-Control"] = "no-store"
+        return resp
 
 
 class VerifyEmailView(APIView):

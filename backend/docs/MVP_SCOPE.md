@@ -11,10 +11,9 @@ The PRD asks for a list of features that remain intentionally outside the MVP. T
 | **Real deployment** | not done | `DEPLOYMENT.md` was exercised in a sandbox only; the Docker image was not built |
 
 ## Backend features deferred
+*Built since the first draft of this list: domain-report PDF/CSV export, account deletion and personal-data export.*
 | Item | Why deferred / impact |
 |---|---|
-| Domain-report PDF/CSV export | the `domain.reports.export` entitlement exists but there is no endpoint; **first gap to fix** |
-| Account-deletion processing and user data export | requests are recorded only; a legal exposure in many regions (`PRIVACY_AND_DATA.md`) |
 | Email change, session/device management | not needed for a first launch; add before wide release |
 | Google Play Billing and Stripe adapters | **Play Billing is required to sell subscriptions inside the Android app**; Paystack/Flutterwave cover web payments |
 | Proration for plan changes | downgrades to Free are "cancel at period end" |
