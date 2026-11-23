@@ -45,6 +45,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "apps.core.middleware.RequestIdMiddleware",
+    "apps.core.middleware.NoIndexMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -54,7 +56,14 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.core.middleware.AdminLoginThrottleMiddleware",
 ]
+
+# The admin path is configurable so it need not sit at the obvious address (this is obscurity, not a security control).
+ADMIN_URL = env("DJANGO_ADMIN_URL", "admin/")
+ADMIN_LOGIN_ATTEMPTS = env_int("ADMIN_LOGIN_ATTEMPTS", 10)
+ADMIN_LOGIN_WINDOW_SECONDS = env_int("ADMIN_LOGIN_WINDOW_SECONDS", 900)
+LOG_REQUESTS = env_bool("LOG_REQUESTS", False)
 
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
@@ -147,6 +156,7 @@ REST_FRAMEWORK = {
         "security_user": "200/hour",
         "billing_checkout": "20/hour",
         "reward_session": "30/hour",
+        "data_export": "5/day",
         "reward_callback": "1200/min",
     },
 }
@@ -177,12 +187,16 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "root": {"handlers": ["console"], "level": env("LOG_LEVEL", "INFO")},
-}
+from config.logging_utils import build_logging  # noqa: E402
+
+LOGGING = build_logging(env("LOG_LEVEL", "INFO"), env("LOG_FORMAT", "text"))   # "json" in production
+
+# --- Cache -----------------------------------------------------------------------
+# Rate limits, provider-key caches and the admin-login throttle live in the cache. A per-process cache would multiply every limit by the
+# number of workers, so production REQUIRES a shared cache (see production.py).
+REDIS_URL = env("REDIS_URL", "")
+CACHES = ({"default": {"BACKEND": "django.core.cache.backends.redis.RedisCache", "LOCATION": REDIS_URL, "KEY_PREFIX": "scansentry"}}
+          if REDIS_URL else {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}})
 
 # --- QR codes -------------------------------------------------------------------
 # Base URL of the public redirect/verification domain used inside dynamic QR codes.

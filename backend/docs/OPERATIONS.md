@@ -8,6 +8,7 @@
 | `process_credits` | hourly | expires due credits, closes abandoned ad sessions | little: spending and balance reads also expire credits on demand |
 | `purge_old_data` | daily | enforces retention (see `PRIVACY_AND_DATA.md`) | data is kept longer than the privacy policy says |
 | `send_expiry_reminders --days 3` | daily | QR expiry reminders | owners are not warned |
+| `process_account_deletions` | daily | erases accounts whose deletion grace period (default 14 days) has passed; honours a paid period still running; reports accounts it cannot erase (staff, organisation owners with members) | deletion requests are never carried out: a legal exposure |
 Every job is idempotent: running one twice is safe. A failing job is logged as `JOB FAILED: ...` and does not stop the others.
 
 ## What to watch
@@ -52,5 +53,8 @@ Tighten `maximum_claims_per_*`, cooldown and the `credits.earn.*_limit` entitlem
 **Bad deploy.** Redeploy the previous image; see "Updating and rolling back" in `DEPLOYMENT.md`.
 
 ## User data requests
-Account deletion requests are **recorded but not yet processed automatically**, and there is no automated data-export endpoint (known gap, see `MVP_SCOPE.md`). Until built, handle requests manually in the admin
-and document each one. Plan for this before launch if you serve users covered by data-protection laws.
+- **Export:** users download their own data themselves (`POST /api/v1/auth/me/export/`, password required, 5 per day, audited). For a request that arrives by email, ask them to use the app, or run the same export from the Django shell: `from apps.accounts.export import export_user_data`.
+- **Deletion:** users request it in the app (`POST /api/v1/auth/me/deletion-request/`), can cancel during the grace period (`DELETE`), and `process_account_deletions` erases the account afterwards: personal data is deleted and the account row becomes an anonymous tombstone (payment records and audit entries are kept without personal details).
+  Read the job's output each day: it lists **deferred** accounts and why (staff accounts, organisation owners with other members: resolve manually; a running paid period: erased automatically when it ends).
+- Deletion is **irreversible** and removes the user's QR codes: printed dynamic codes stop working. Backups taken before the erasure still contain the data until they expire, which your privacy policy should state (see `PRIVACY_AND_DATA.md`).
+- Staff accounts are never erased automatically (so administration cannot be locked out): demote first, then request deletion.

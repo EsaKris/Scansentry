@@ -12,7 +12,7 @@ Other layers:
 - `tests/test_deployment.py`: production settings fail closed, structured logging, Sentry privacy, admin sign-in protection, the smoke script against a live server. It uses a Redis at `REDIS_TEST_URL`
   (default `redis://localhost:6399/0`) for one test and skips it if none is reachable.
 - `tests/test_acceptance_map.py`: `docs/ACCEPTANCE.md` must reference only existing tests and list all 23 scenarios.
-- Static checks: `bandit -r apps config -ll` (no medium/high findings), `pip-audit -r requirements/production.txt` (no known vulnerabilities), `python manage.py check --deploy --settings=config.settings.production`.
+- Static checks: `bandit -r apps config scripts -ll` (no medium/high findings), `pip-audit -r requirements/production.txt` (no known vulnerabilities), `python manage.py check --deploy --settings=config.settings.production`.
 - API contract: `python manage.py spectacular --file openapi.yaml --validate` must stay warning-free and committed.
 - `ci/github-actions-backend.yml` runs all of the above (never executed: verify its first run).
 

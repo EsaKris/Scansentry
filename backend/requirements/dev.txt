@@ -1,3 +1,4 @@
 -r base.txt
 pytest>=8.3
 pytest-django>=4.10
+pypdf>=4.0

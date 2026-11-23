@@ -37,6 +37,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     email_verified = models.BooleanField(default=False)
     deletion_requested_at = models.DateTimeField(null=True, blank=True)
+    anonymized_at = models.DateTimeField(null=True, blank=True, help_text="Set when the account's personal data was erased; the row stays as an anonymous tombstone.")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

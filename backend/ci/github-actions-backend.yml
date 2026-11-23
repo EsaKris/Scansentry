@@ -48,6 +48,6 @@ jobs:
           python manage.py spectacular --file /tmp/openapi.yaml --validate --settings=config.settings.test
           diff -q /tmp/openapi.yaml openapi.yaml
       - name: Static security scan (medium and above)
-        run: bandit -r apps config -ll
+        run: bandit -r apps config scripts -ll
       - name: Known-vulnerable dependencies
         run: pip-audit -r requirements/production.txt

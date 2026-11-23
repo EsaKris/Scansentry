@@ -1,0 +1,16 @@
+# robots.txt for the PUBLIC WEBSITE (not the API host: that one disallows everything).
+# Replace scansentry.example with your real domain.
+User-agent: *
+Allow: /
+
+# Scan results, QR verification links and signed-in pages must never be indexed. Disallow stops crawling (and the load/scan-counting from bots);
+# ALSO keep the noindex meta tag / X-Robots-Tag header on these pages: robots.txt alone does not remove a URL that other sites link to.
+Disallow: /r/
+Disallow: /scan/
+Disallow: /verify/
+Disallow: /app
+Disallow: /dashboard
+Disallow: /account
+Disallow: /billing
+
+Sitemap: https://scansentry.example/sitemap.xml

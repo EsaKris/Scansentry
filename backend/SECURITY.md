@@ -135,6 +135,13 @@ Scope: this was a review by the engineer who built the system plus tooling. It i
 **Verified live in the sandbox:** production gunicorn (2 workers) + Redis + migrated PostgreSQL pass the 18-check smoke test; the access log contained no query string; a backup restored into a scratch database with its data and credit-ledger total intact; the RLS script locked all 50 tables, Django (owner role) kept working and a non-owner role with a `SELECT` grant read 0 rows.
 **Not verified:** the Docker image build, any real host, Supabase specifics (pooler/IPv6, Storage S3 endpoint, backup plans), real object storage, Google/Paystack/AdMob behaviour, real devices, load/performance, and the CI workflow.
 
+## Added after Milestone 9: data rights, exports, search-engine exposure
+- Account erasure anonymises (payments are `PROTECT`ed and audit entries point at their actor, so the row stays as a tombstone); a policy table decides every relation to a user and a test fails if a new model is not decided; another test scans every column of every table for the erased person's email and name
+- Erasure is delayed by a grace period, cancellable, never cuts a paid period short, and never runs automatically on staff accounts or organisation owners with members
+- Data export needs the password again (a stolen session is not enough), is rate-limited and audited, and excludes secrets by name AND by pattern, other people's data and staff-internal notes
+- Domain-report CSV neutralises formula-injection cells (a hostile site controls registrar/DNS text); PDF text is escaped; download filenames cannot inject headers; the export is gated by the entitlement on the backend
+- The API host sends `X-Robots-Tag: noindex` and `Disallow: /`; the website must do the same for scan results and `/r/` pages (`docs/SEO_AND_ANALYTICS.md`)
+
 ## Known gaps (tracked for later milestones)
 - **Web rewarded ads cannot be server-verified** (Google: Ad Manager SSV is app-only). They are off by default; if enabled they are client-attested and farmable by a determined user
 - The SSV adapter was written from Google's public documentation and tested against a simulated signer: verify it with AdMob's SSV test tool and a real device before enabling rewards

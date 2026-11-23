@@ -65,3 +65,18 @@ def _client_ip(request) -> str:
         if len(parts) >= proxies:
             return parts[-proxies]
     return request.META.get("REMOTE_ADDR", "unknown")
+
+
+class NoIndexMiddleware:
+    """This Django app serves the API, the admin and redirects: none of it should ever appear in a search engine.
+    (The public WEBSITE is a separate app and is what should rank: see docs/SEO_AND_ANALYTICS.md.)"""
+
+    VALUE = "noindex, nofollow, noarchive, nosnippet"
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        response["X-Robots-Tag"] = self.VALUE
+        return response
