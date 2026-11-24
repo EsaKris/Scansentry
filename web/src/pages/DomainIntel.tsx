@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Search, ShieldAlert, ShieldCheck, Globe, AlertTriangle } from 'lucide-react';
+import { Search, ShieldAlert, ShieldCheck, Globe, AlertTriangle, } from 'lucide-react';
+
 import api from '../services/api';
 
 export default function DomainIntel() {

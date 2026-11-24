@@ -29,12 +29,28 @@ export default function Login() {
         refresh: response.data.refresh 
       });
       navigate('/dashboard');
-    } catch (err: any) {
-       // This turns the object into a readable string
-      console.log("LOGIN ERROR STRING:", JSON.stringify(err.response?.data, null, 2));
-       alert(JSON.stringify(err.response?.data)); // This will pop up the exact error!
-        alert("Login failed! Check the console (F12) for details.");
-      setError(err.response?.data?.detail || 'Invalid email or password. Please try again.');
+        } catch (err: any) {
+      console.error("Login Error Object:", err); // Shows the full error in console
+      
+      let errorMsg = 'Invalid email or password. Please try again.';
+      
+      // Check if it's a network error (server asleep/down)
+      if (!err.response) {
+        errorMsg = 'Cannot connect to the server. Please check your internet or try again in a moment.';
+      } 
+      // Check if her backend sent a custom error object
+      else if (err.response.data) {
+        const data = err.response.data;
+        if (data.error?.message) {
+          errorMsg = data.error.message;
+        } else if (data.detail) {
+          errorMsg = data.detail;
+        } else if (typeof data === 'string') {
+          errorMsg = data;
+        }
+      }
+      
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }
