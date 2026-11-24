@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, QrCode, Globe, BarChart3, ShieldCheck, ShieldAlert, CheckCircle2, ArrowRight, Activity, Zap, Lock, EyeOff, ShieldX } from 'lucide-react';
+import { Shield, QrCode, Globe, BarChart3, ShieldCheck, ShieldAlert, CheckCircle2, ArrowRight, Activity, Zap, Lock, EyeOff } from 'lucide-react';
 
 export default function LandingPage() {
   
